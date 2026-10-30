@@ -5,10 +5,11 @@
   <meta name="app-base" content="__BASE__">
   <title>QC Folder Manager</title>
   <link rel="stylesheet" href="__BASE__/assets/style.css">
+  <script src="__BASE__/assets/i18n.js" defer></script>
   <script src="__BASE__/assets/app.js" defer></script>
 </head>
 <body>
-<header><a class="brand" href="__BASE__/"><span class="logo">QC</span><span>Folder Manager<small>執行紀錄 · 空間管理</small></span></a><div id="account"></div></header>
+<header><a class="brand" href="__BASE__/"><span class="logo">QC</span><span>Folder Manager<small>執行紀錄 · 空間管理</small></span></a><div class="header-controls"><select id="language" aria-label="語言 / Language"><option value="zh-Hant">繁體中文</option><option value="en">English</option></select><div id="account"></div></div></header>
 <main>
   <section id="welcome" class="welcome" hidden><span class="eyebrow">QC WORKSPACE</span><h1>讓每一次執行，<br>都有清楚的去向。</h1><p>查看 QC 執行資料與空間用量，安全清理已完成的工作。</p><a class="button primary" href="__BASE__/auth/login">使用 Gitea 登入 →</a><p class="muted">依組織存取權限顯示資料，執行中的工作會受到保護。</p></section>
   <section id="workspace" hidden>

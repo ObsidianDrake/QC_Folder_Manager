@@ -134,7 +134,7 @@ def create_app(config, db=None, gitea=None, drone=None, storage=None):
 
     @app.get('/assets/<name>')
     def asset(name):
-        if name not in ('app.js','style.css'):
+        if name not in ('app.js','style.css','i18n.js'):
             raise RequestError('Not found',404)
         return send_from_directory(str(static),name)
 

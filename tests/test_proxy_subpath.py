@@ -43,7 +43,8 @@ def test_proxy_login_assets_api_and_logout(configuration, monkeypatch, strip_pre
             assert page.status_code == 200
             assert (prefix+'/assets/app.js').encode() in page.data
             assert (prefix+'/assets/style.css').encode() in page.data
-        for path in ('/health', '/assets/app.js', '/assets/style.css'):
+            assert (prefix+'/assets/i18n.js').encode() in page.data
+        for path in ('/health', '/assets/app.js', '/assets/style.css', '/assets/i18n.js'):
             assert get(path).status_code == 200
         assert get('/api/records').status_code == 401
         login = get('/auth/login', headers={

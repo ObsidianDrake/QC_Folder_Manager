@@ -6,6 +6,10 @@
 目標為 **RHEL 8.10 / Python 3.9.10**，不使用 Docker，提供 PyInstaller 單一 binary 建置流程。
 公司內網連線、Gitea OAuth scopes 與 RHEL binary 實機相容性仍需 UAT；不將開發環境的 binary 當作正式產物。
 
+## 介面語言
+
+頁首提供繁體中文與 English 選單，登入前後均可切換。預設繁體中文；語言偏好儲存在瀏覽器 localStorage，無法使用儲存空間時仍可於當次頁面切換。時間維持 Asia/Taipei，依語言調整顯示格式。專案名稱、帳號與檔案路徑不翻譯。
+
 ## 使用流程
 
 1. 使用 Gitea 帳號登入，頁面僅顯示可存取的專案。

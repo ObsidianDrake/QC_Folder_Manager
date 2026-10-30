@@ -114,7 +114,7 @@ def main(binary):
             with browser.open(public+'/auth/login',timeout=10) as res:
                 assert b'QC Folder Manager' in res.read()
             me=api('/api/me');csrf=me['csrf'];assert me['user']['login']=='vendor-smoke'
-            for name in ('app.js','style.css'):
+            for name in ('app.js','style.css','i18n.js'):
                 with browser.open(public+'/assets/'+name,timeout=10) as res:assert len(res.read())>100
             api('/api/scan',{'projects':['test']})
             inventory=eventually(lambda:(lambda x:x if x['scans'].get('test',{}).get('state')=='ready' else None)(api('/api/records')))
