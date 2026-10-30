@@ -16,9 +16,8 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           cache: pip
-      - run: python -m pip install -r requirements-dev.txt -r requirements-build.txt
       - run: make test
       - run: make check-config
       - run: make build
-      - run: python tests/smoke_binary.py dist/qc-folder-manager
+      - run: .venv/bin/python tests/smoke_binary.py dist/qc-folder-manager
       # Ubuntu binaries are smoke-test artifacts, not RHEL release binaries.

@@ -13,15 +13,14 @@
 在 RHEL 8.10、相同 CPU 架構的建置主機執行（tcsh 亦可直接呼叫這些指令）：
 
 ```sh
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements-dev.txt -r requirements-build.txt
-env PYTHON=.venv/bin/python bash scripts/build-rhel8.sh
-.venv/bin/python tests/smoke_binary.py dist/qc-folder-manager
+make release
+# Python 不在 PATH 時：make release PYTHON=/path/to/python3
 ```
 
+Makefile 自動建立 `.venv` 並安裝固定版本依賴；不需 activate，也不需每次指定 venv Python。可用 `make help` 查看指令。
 建置 Python 必須為 3.9.10；venv 需能取得相容的 Python shared library。
 產物 `dist/qc-folder-manager` 與 SHA256 可複製到服務目錄；執行主機不需 pip 套件。
-`make build PYTHON=.venv/bin/python` 可在其他 Linux 做開發驗證，不能據此宣稱 RHEL 相容。
+`make` 或 `make build` 可在其他 Linux 做開發驗證，不能據此宣稱 RHEL 相容。
 
 ## 設定
 

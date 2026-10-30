@@ -53,21 +53,23 @@
 
 ## 開發與建置
 
-在 Python 3.9.10 環境建立 virtualenv 並安裝固定版本套件：
+與 LSF Dashboard 相同，直接 `make` 即可自動建立 `.venv`、安裝固定版本依賴並產生 binary，不需先 activate venv：
 
 ```sh
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements-dev.txt -r requirements-build.txt
-make test PYTHON=.venv/bin/python
-make build PYTHON=.venv/bin/python
+make
+# make build 或 make executable 亦可
+make test
+make help
 ```
+
+若 Python 不在 PATH，首次執行 `make PYTHON=/path/to/python3`。後續自動使用 `.venv/bin/python`；既有 venv 不會因 PYTHON 變數改變而被重建。依賴安裝成功後會快取，requirements 有變更才重新安裝。`make clean` 僅清除 `build/` 與 `dist/`，保留 venv、設定檔與資料。
 
 產物：`dist/qc-folder-manager`。UI 資產與 SSH helper 會一併打包；設定檔與 SQLite 不放入 binary。
 
 正式 RHEL 8.10 建置使用相同 CPU 架構的 RHEL 8.10 主機：
 
 ```sh
-env PYTHON=.venv/bin/python bash scripts/build-rhel8.sh
+make release
 ```
 
 此腳本確認 OS／Python 版本、執行測試、建置 binary 與檢查設定，輸出 SHA256。
@@ -141,7 +143,7 @@ logging:
 ## 驗證
 
 ```sh
-make test PYTHON=.venv/bin/python
+make test
 .venv/bin/python tests/smoke_binary.py dist/qc-folder-manager
 ```
 
