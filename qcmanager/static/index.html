@@ -19,10 +19,10 @@
     <section id="records-panel">
       <div class="toolbar"><label>專案<select id="project"><option value="">全部可存取專案</option></select></label><label>搜尋<input id="search" type="search" placeholder="Build number 或資料夾名稱"></label><label>狀態<select id="status"><option value="">全部狀態</option><option value="ready">可清理</option><option value="protected">受保護／待確認</option></select></label></div>
       <div id="scan-status" class="scan-status"></div>
-      <div class="selection"><span id="selected-count">已選取 0 筆</span><button id="delete" class="button danger" disabled>刪除選取資料</button></div>
+      <div class="selection"><span id="selected-count">已選取 0 筆</span><button id="update-sizes" class="button" disabled>更新選取容量</button><button id="delete" class="button danger" disabled>刪除選取資料</button></div>
       <div class="table-wrap"><table><thead><tr><th><input id="select-all" type="checkbox" aria-label="選取畫面上所有可清理紀錄"></th><th>執行資料／專案</th><th>Drone 狀態</th><th>估計大小</th><th>位置</th><th>最近掃描</th></tr></thead><tbody id="records"></tbody></table></div>
       <div id="empty" class="empty" hidden>尚無執行紀錄。請選擇專案後按「重新掃描」。</div>
-      <p class="footnote">大小依掃描時的磁碟配置估計；共享檔案可能重複計算。刪除前會再次驗證權限及 Drone 狀態。</p>
+      <p class="footnote">容量在背景逐筆計算並快取，不會隨開啟頁面重算；總量僅含已知容量。刪除前仍會驗證權限、Drone 狀態及目錄安全。</p>
     </section>
     <section id="audit-panel" hidden><div class="audit-head"><p class="muted">保留實際操作人的 Gitea 帳號，資料夾刪除後仍可追蹤。</p><button id="refresh-audit" class="button">更新紀錄</button></div><h2>最近清理工作</h2><div id="operations"></div><h2>稽核事件</h2><div class="table-wrap"><table><thead><tr><th>時間（台北）</th><th>Gitea 操作人</th><th>事件</th><th>專案／工作 ID</th><th>說明</th></tr></thead><tbody id="audit"></tbody></table></div><button id="more-audit" class="button" hidden>載入更早紀錄</button></section>
   </section>

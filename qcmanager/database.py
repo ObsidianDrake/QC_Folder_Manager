@@ -48,13 +48,18 @@ class Database:
 
     def recover(self):
         with self.connect() as db:
+            for item in db.execute('SELECT id,payload FROM records').fetchall():
+                row = json.loads(item['payload'])
+                if row.get('size_state') in ('queued','running'):
+                    row.update(size_state='interrupted', size_ticket=None)
+                    db.execute('UPDATE records SET payload=? WHERE id=?', (json.dumps(row), item['id']))
             rows = db.execute("SELECT * FROM operations WHERE state IN ('queued','running')").fetchall()
             for row in rows:
                 state = 'failed' if row['state'] == 'queued' else 'unknown'
                 message = 'Service restarted; request cancelled' if state == 'failed' else 'Service restarted; reconcile filesystem before any retry'
                 db.execute('UPDATE operations SET state=?, message=?, updated=? WHERE id=?', (state,message,time.time(),row['id']))
                 self.event(db, row['id'], row['project'], json.loads(row['actor']), state, {'message':message})
-            db.execute("UPDATE scans SET state='error',error='Service restarted; scan again' WHERE state='running'")
+            db.execute("UPDATE scans SET state='error',error='Service restarted; scan again' WHERE state IN ('running','checking')")
 
     def event(self, db, operation, project, actor, event, detail):
         db.execute('INSERT INTO audit(operation,project,actor,event,at,detail) VALUES(?,?,?,?,?,?)',
@@ -68,19 +73,46 @@ class Database:
         with self.connect() as db:
             db.execute("INSERT INTO scans(project,state) VALUES(?,'running') ON CONFLICT(project) DO UPDATE SET state='running',error=NULL", (project,))
 
-    def finish_scan(self, project, result=None, error=None):
+    def finish_scan(self, project, result=None, error=None, state="ready"):
         with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
             if error:
                 db.execute("UPDATE scans SET state='error',error=? WHERE project=?", (error,project))
                 return
-            existing = {row['name']:row['id'] for row in db.execute('SELECT id,name FROM records WHERE project=?',(project,))}
+            existing = {row['name']:json.loads(row['payload']) for row in db.execute('SELECT name,payload FROM records WHERE project=?',(project,))}
             db.execute('DELETE FROM records WHERE project=?',(project,))
             for row in result['records']:
-                rid = existing.get(row['name'], uuid.uuid4().hex)
+                old = existing.get(row['name'], {})
+                same = old.get('identity') == row.get('identity') and old.get('root_identity') == row.get('root_identity')
+                rid = old.get('id', uuid.uuid4().hex) if same else uuid.uuid4().hex
+                if same:
+                    for key in ('bytes','size_at','size_state','size_error','size_ticket'):
+                        if key in old:
+                            row[key] = old[key]
+                row.setdefault('size_state', 'pending' if row.get('bytes') is None else 'cached')
                 row = dict(row, id=rid, project=project, scanned_at=time.time())
                 db.execute('INSERT INTO records VALUES(?,?,?,?)',(rid,project,row['name'],json.dumps(row)))
-            db.execute("UPDATE scans SET state='ready',error=NULL,updated=?,quarantines=? WHERE project=?",
-                       (time.time(),json.dumps(result.get('quarantines',[])),project))
+            db.execute("UPDATE scans SET state=?,error=NULL,updated=?,quarantines=? WHERE project=?",
+                       (state,time.time(),json.dumps(result.get('quarantines',[])),project))
+
+    def scan_ready(self, project):
+        with self.connect() as db:
+            db.execute("UPDATE scans SET state='ready' WHERE project=?", (project,))
+
+    def patch_record(self, snapshot, fields, ticket=None):
+        with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            found = db.execute('SELECT payload FROM records WHERE id=?', (snapshot['id'],)).fetchone()
+            if not found:
+                return False
+            row = json.loads(found['payload'])
+            if any(row.get(k) != snapshot.get(k) for k in ('identity','root_identity')):
+                return False
+            if ticket is not None and row.get('size_ticket') != ticket:
+                return False
+            row.update(fields)
+            db.execute('UPDATE records SET payload=? WHERE id=?', (json.dumps(row), row['id']))
+            return True
 
     def record(self, rid):
         with self.connect() as db:

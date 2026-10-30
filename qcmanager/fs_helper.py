@@ -130,7 +130,8 @@ def execute(request):
                     try:
                         if identity(os.fstat(child)) != row['identity']:
                             raise ValueError('Directory changed during scan')
-                        row['bytes'] = disk_size(child)
+                        if not request.get('metadata_only', False):
+                            row['bytes'] = disk_size(child)
                     finally:
                         os.close(child)
                 except (OSError, ValueError, RecursionError):
@@ -139,6 +140,22 @@ def execute(request):
                 if len(rows) > 10000:
                     raise ValueError('Too many records; split the management root')
             return {'records': rows, 'quarantines': quarantines, 'root_identity': root_identity}
+        if action == 'size':
+            name = request['name']
+            if not isinstance(name, str) or not pattern.fullmatch(name):
+                raise ValueError('Invalid record name')
+            if request['root_identity'] != root_identity:
+                raise ValueError('Management root changed')
+            child = child_dir(fd, name)
+            try:
+                if identity(os.fstat(child)) != request['identity']:
+                    raise ValueError('Directory changed')
+                size = disk_size(child)
+                if identity(os.stat(name, dir_fd=fd, follow_symlinks=False)) != request['identity']:
+                    raise ValueError('Directory replaced during size calculation')
+                return {'root_identity': root_identity, 'bytes': size}
+            finally:
+                os.close(child)
         if action != 'delete':
             raise ValueError('Unknown action')
         name = request['name']

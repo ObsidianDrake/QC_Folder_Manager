@@ -21,6 +21,9 @@ class Manager:
         self.projects = {p['id']: p for p in config['projects']}
         self.pool = ThreadPoolExecutor(max_workers=config['server']['workers'], thread_name_prefix='qc-worker')
         self.locks = {key: threading.Lock() for key in self.projects}
+        self.size_pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix='qc-size')
+        self.size_capacity = threading.BoundedSemaphore(200)
+        self.pending_sizes = set()
         self.pending_scans = set()
         self.guard = threading.Lock()
         self.capacity = threading.BoundedSemaphore(200)
@@ -69,20 +72,23 @@ class Manager:
         try:
             with self.locks[pid]:
                 project = self.projects[pid]
-                result = self.storage.request(project,'scan')
+                result = self.storage.request(project,'scan',metadata_only=True)
                 for row in result['records']:
-                    row['drone_status'] = 'unknown'
-                    row['drone_error'] = None
-                    row['build_created'] = None
+                    row.update(drone_checked_at=None, drone_status='unknown', drone_error=None, build_created=None,
+                               drone_url=self.drone.link(project,row['number']))
+                # Publish directory names first. Recursive size I/O uses a separate worker.
+                self.db.finish_scan(pid,result=result,state="checking")
+                snapshots, _ = self.db.inventory({pid})
+                self.queue_sizes([row for row in snapshots if row.get('bytes') is None and not row.get('error')])
+                for row in snapshots:
+                    fields = {'drone_checked_at': time.time()}
                     try:
                         build = self.drone.build(project,row['number'])
-                        row['drone_status'] = build['status']
-                        row['build_created'] = build.get('created')
+                        fields.update(drone_status=build['status'], build_created=build.get('created'))
                     except APIError:
-                        row['drone_error'] = 'Drone 狀態無法確認'
-                    row['drone_checked_at'] = time.time()
-                    row['drone_url'] = self.drone.link(project,row['number'])
-                self.db.finish_scan(pid,result=result)
+                        fields.update(drone_status='unknown', drone_error='Drone 狀態無法確認')
+                    self.db.patch_record(row, fields)
+                self.db.scan_ready(pid)
                 self.log.info('scan completed project=%s records=%d',pid,len(result['records']))
         except Exception:
             self.db.finish_scan(pid,error='掃描失敗；請檢查 filesystem、SSH、Python 與服務連線。')
@@ -90,6 +96,61 @@ class Manager:
         finally:
             with self.guard:
                 self.pending_scans.discard(pid)
+
+    def sizes(self, ids, actor):
+        if not isinstance(ids, list) or not 1 <= len(ids) <= 100 or any(not isinstance(x,str) for x in ids) or len(set(ids)) != len(ids):
+            raise RequestError('請選擇 1–100 筆不重複的紀錄。')
+        allowed = self.allowed(actor)
+        rows = [self.db.record(rid) for rid in ids]
+        if any(not row or row['project'] not in allowed for row in rows):
+            raise RequestError('包含無權限或不存在的紀錄。',404)
+        return {'accepted': self.queue_sizes(rows)}
+
+    def queue_sizes(self, rows):
+        if not rows:
+            return 0
+        if not self.size_capacity.acquire(blocking=False):
+            return 0
+        jobs = []
+        try:
+            with self.guard:
+                for row in rows:
+                    if row['id'] in self.pending_sizes:
+                        continue
+                    ticket = uuid.uuid4().hex
+                    if self.db.patch_record(row, {'size_state':'queued','size_error':None,'size_ticket':ticket}):
+                        self.pending_sizes.add(row['id'])
+                        jobs.append((row,ticket))
+            if not jobs:
+                self.size_capacity.release()
+                return 0
+            self.size_pool.submit(self._sizes, jobs)
+            return len(jobs)
+        except Exception:
+            for row,ticket in jobs:
+                self.db.patch_record(row, {'size_state':'interrupted'},ticket)
+                with self.guard:
+                    self.pending_sizes.discard(row['id'])
+            self.size_capacity.release()
+            raise
+
+    def _sizes(self, jobs):
+        try:
+            for row,ticket in jobs:
+                try:
+                    if not self.db.patch_record(row, {'size_state':'running'},ticket):
+                        continue
+                    result = self.storage.request(self.projects[row['project']], 'size',
+                        name=row['name'], identity=row['identity'], root_identity=row['root_identity'])
+                    self.db.patch_record(row, {'bytes':result['bytes'],'size_at':time.time(),
+                                              'size_state':'cached','size_error':None},ticket)
+                except Exception:
+                    self.db.patch_record(row, {'size_state':'failed','size_error':'Capacity calculation failed'},ticket)
+                finally:
+                    with self.guard:
+                        self.pending_sizes.discard(row['id'])
+        finally:
+            self.size_capacity.release()
 
     def inventory(self, actor):
         allowed = self.allowed(actor)
@@ -129,6 +190,8 @@ class Manager:
                 # Persist refusal without returning target details to the caller.
                 self.db.rejected(actor,row['project'] if row else None,{'reason':'unauthorized or missing record'})
                 raise RequestError('包含無權限或不存在的紀錄。',404)
+            if row.get('drone_checked_at') is None:
+                raise RequestError('請完成一次成功掃描',409)
             if row.get('error'):
                 self.db.rejected(actor,row['project'],{'reason':'unsafe inspection','record':rid})
                 raise RequestError('目錄無法安全檢查，請重新掃描。',409)
@@ -190,3 +253,4 @@ class Manager:
 
     def shutdown(self):
         self.pool.shutdown(wait=True)
+        self.size_pool.shutdown(wait=True)

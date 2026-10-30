@@ -115,7 +115,18 @@ const translations = {
   "預覽模擬完成，沒有刪除任何實體檔案。": "Simulation completed. No actual files were deleted.",
   "互動預覽 · 所有資料皆為虛構，刪除只影響此頁面。重新整理即可還原。": "Interactive preview · All data is fictional. Deletions only affect this page. Reload to reset.",
   "此為虛構 build；正式版會開啟對應的 Drone build。": "This is a fictional build. The deployed application opens the corresponding Drone build.",
-  "模擬刪除 {path}": "Simulated deletion: {path}"
+  "模擬刪除 {path}": "Simulated deletion: {path}",
+  "更新選取容量": "Update selected sizes",
+  "更新容量": "Update size",
+  "等待計算": "Awaiting calculation",
+  "容量排隊中": "Size calculation queued",
+  "容量計算中": "Calculating size",
+  "快取容量": "Cached size",
+  "容量計算失敗": "Size calculation failed",
+  "容量計算中斷": "Size calculation interrupted",
+  "確認 Drone 狀態中": "Checking Drone status",
+  "已排入 {count} 筆容量計算": "Queued {count} size calculations",
+  "容量在背景逐筆計算並快取，不會隨開啟頁面重算；總量僅含已知容量。刪除前仍會驗證權限、Drone 狀態及目錄安全。": "Sizes are calculated individually in the background and cached, not recalculated when opening this page. Totals include known sizes only. Permissions, Drone status and directory safety are still checked before deletion."
 };
 const languageKey='qc-folder-manager-language';
 let language='zh-Hant';
