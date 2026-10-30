@@ -126,7 +126,20 @@ const translations = {
   "容量計算中斷": "Size calculation interrupted",
   "確認 Drone 狀態中": "Checking Drone status",
   "已排入 {count} 筆容量計算": "Queued {count} size calculations",
-  "容量在背景逐筆計算並快取，不會隨開啟頁面重算；總量僅含已知容量。刪除前仍會驗證權限、Drone 狀態及目錄安全。": "Sizes are calculated individually in the background and cached, not recalculated when opening this page. Totals include known sizes only. Permissions, Drone status and directory safety are still checked before deletion."
+  "容量在背景逐筆計算並快取，不會隨開啟頁面重算；總量僅含已知容量。刪除前仍會驗證權限、Drone 狀態及目錄安全。": "Sizes are calculated individually in the background and cached, not recalculated when opening this page. Totals include known sizes only. Permissions, Drone status and directory safety are still checked before deletion.",
+  "容量更新時間": "Size last updated",
+  "磁碟空間": "Disk Space",
+  "整個 filesystem 的共用空間，非專案配額。": "Shared filesystem capacity, not a project quota.",
+  "更新磁碟資訊": "Refresh disks",
+  "尚未取得掛載資訊": "Mount information pending",
+  "可用空間": "Available",
+  "磁碟使用率": "Disk usage",
+  "已使用 {percent} · 總容量 {total}": "{percent} used · {total} total",
+  "查詢失敗，保留上次資料": "Query failed; showing last known values",
+  "更新中": "Refreshing",
+  "資料已過期": "Stale data",
+  "已更新": "Updated",
+  "尚無磁碟資訊": "No disk information yet"
 };
 const languageKey='qc-folder-manager-language';
 let language='zh-Hant';

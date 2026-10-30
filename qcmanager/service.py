@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from .clients import APIError, TERMINAL, permitted
 from .storage import StorageError
+from .disks import DiskCache
 
 
 class RequestError(RuntimeError):
@@ -19,6 +20,7 @@ class Manager:
     def __init__(self, config, db, gitea, drone, storage):
         self.config, self.db, self.gitea, self.drone, self.storage = config, db, gitea, drone, storage
         self.projects = {p['id']: p for p in config['projects']}
+        self.disks = DiskCache(storage,self.projects)
         self.pool = ThreadPoolExecutor(max_workers=config['server']['workers'], thread_name_prefix='qc-worker')
         self.locks = {key: threading.Lock() for key in self.projects}
         self.size_pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix='qc-size')
@@ -238,6 +240,8 @@ class Manager:
                 if state not in ('deleted','failed','partial'):
                     state = 'unknown'
                 self.db.update_operation(oid,state,result.get('error') or ('已刪除' if state=='deleted' else '需核對清理結果'))
+                if state in ('deleted','partial'):
+                    self.disks.invalidate(pid)
                 self.log.info('delete result operation=%s state=%s',oid,state)
         except (APIError, RequestError):
             self.db.update_operation(oid,'rejected','無法重新確認 Gitea 身分或 Drone 狀態；未執行刪除')
@@ -254,3 +258,4 @@ class Manager:
     def shutdown(self):
         self.pool.shutdown(wait=True)
         self.size_pool.shutdown(wait=True)
+        self.disks.shutdown()

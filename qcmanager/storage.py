@@ -50,7 +50,7 @@ class Storage:
                         environment.pop('LD_LIBRARY_PATH',None)
                 proc = subprocess.run(command, input=json.dumps(body), text=True,
                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                      timeout=ssh['timeout_seconds'], check=False, env=environment)
+                                      timeout=min(20,ssh['timeout_seconds']) if action=='disk' else ssh['timeout_seconds'], check=False, env=environment)
             except (subprocess.TimeoutExpired, OSError) as e:
                 raise StorageError('SSH unavailable or timed out; reconcile remote state', action == 'delete') from e
             if proc.returncode:

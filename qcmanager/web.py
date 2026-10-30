@@ -196,6 +196,22 @@ def create_app(config, db=None, gitea=None, drone=None, storage=None):
             manager.scan(pid,g.actor)
         return jsonify(accepted=True),202
 
+    @app.get('/api/disks')
+    @require_login
+    def disks():
+        return jsonify(disks=manager.disks.snapshot(manager.allowed(g.actor)))
+
+    @app.post('/api/disks/refresh')
+    @require_login
+    def refresh_disks():
+        body = request.get_json(silent=True) or {}
+        ids = body.get('projects')
+        if not isinstance(ids,list) or not 1<=len(ids)<=100 or any(not isinstance(x,str) for x in ids):
+            raise RequestError('請選擇要掃描的專案。')
+        if any(pid not in manager.allowed(g.actor) for pid in ids):
+            raise RequestError('包含無權限的專案。',404)
+        return jsonify(accepted=manager.disks.refresh(set(ids),manual=True)),202
+
     @app.post('/api/sizes')
     @require_login
     def sizes():

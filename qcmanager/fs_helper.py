@@ -103,6 +103,22 @@ def execute(request):
     moved = False
     try:
         root_identity = identity(os.fstat(fd))
+        if action == 'disk':
+            mid = mount_id(fd)
+            mount = None
+            with open('/proc/self/mountinfo') as stream:
+                for line in stream:
+                    fields = line.split()
+                    if fields[0] == mid:
+                        mount = re.sub(r'\\([0-7]{3})', lambda m: chr(int(m.group(1), 8)), fields[4])
+                        break
+            if mount is None:
+                raise ValueError('Mount information unavailable')
+            info = os.fstatvfs(fd)
+            unit = info.f_frsize
+            return {'root_identity': root_identity, 'mount_id': mid, 'mount': mount,
+                    'total': info.f_blocks * unit, 'available': max(0, info.f_bavail) * unit,
+                    'used': max(0, info.f_blocks - info.f_bfree) * unit}
         if action == 'probe':
             return {'root_identity': root_identity, 'python': list(sys.version_info[:3]),
                     'uid': os.geteuid(), 'mount_id': mount_id(fd)}

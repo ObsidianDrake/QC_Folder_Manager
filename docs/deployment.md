@@ -163,3 +163,20 @@ UI 不把估計值宣稱為已釋放空間。
 結果以目錄身分與工作 ticket 比對才寫回，避免覆蓋已替換或已刪除的紀錄。
 服務重啟會將未完成容量工作標示中斷；可手動重新更新。容量快取仍保留於 SQLite。
 容量計算不鎖住整個專案，刪除前原有的完整目錄安全檢查仍保留，不能因為已有容量快取就略過。
+
+## Disk Space
+
+磁碟卡片以設定的 host ID 與實際 mount ID 分組；同一 host 上的多個 run root 若在相同 mount，合併顯示。
+不同 host 不自動合併，即使指向同一 NFS。僅從登入者有權存取的專案建立卡片與專案清單。
+磁碟數值代表整個 filesystem，不代表專案使用量或個別 quota；不提供跨磁碟加總。
+
+Linux helper 依 root 的 fd 查詢 `/proc/self/mountinfo` 與 `fstatvfs`，不列舉 run folder 內容。
+Available = `f_bavail * f_frsize`；Total = `f_blocks * f_frsize`；Used = `(f_blocks-f_bfree) * f_frsize`。
+Used/Total 為使用率；有保留空間時 Available + Used 不一定等於 Total。
+
+UI 輪詢時讀取記憶體快取，超過 60 秒才排入背景查詢；沒有瀏覽者時不定期刷新。
+手動更新最短間隔 5 秒，同一專案已有查詢時不重複排入，磁碟查詢使用獨立的兩個 worker。
+SSH disk 查詢 timeout 最長 20 秒；local filesystem 若由 kernel 卡住，仍可能占住該 worker，但不阻塞 HTTP 回應。
+查詢失敗保留舊值並標示失敗，超過 90 秒或刪除後失效的數值標示過期。
+刪除成功或部分刪除後重新查詢，不以 run folder 估計容量相減。
+重啟後磁碟快取從空值開始重新查詢；不影響 SQLite 中的 run folder 容量與稽核。
