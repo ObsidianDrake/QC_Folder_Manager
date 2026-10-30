@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="app-base" content="__BASE__">
+  <title>QC Folder Manager</title>
+  <link rel="stylesheet" href="__BASE__/assets/style.css">
+  <script src="__BASE__/assets/app.js" defer></script>
+</head>
+<body>
+<header><a class="brand" href="__BASE__/"><span class="logo">QC</span><span>Folder Manager<small>執行紀錄 · 空間管理</small></span></a><div id="account"></div></header>
+<main>
+  <section id="welcome" class="welcome" hidden><span class="eyebrow">QC WORKSPACE</span><h1>讓每一次執行，<br>都有清楚的去向。</h1><p>查看 QC 執行資料與空間用量，安全清理已完成的工作。</p><a class="button primary" href="__BASE__/auth/login">使用 Gitea 登入 →</a><p class="muted">依組織存取權限顯示資料，執行中的工作會受到保護。</p></section>
+  <section id="workspace" hidden>
+    <div class="page-head"><div><span class="eyebrow">WORKSPACE OVERVIEW</span><h1>QC 執行紀錄</h1><p class="muted">追蹤每筆 build，整理不再需要的執行資料。</p></div><button id="scan" class="button primary">重新掃描</button></div>
+    <div class="metrics"><div><span>執行資料</span><strong id="total">—</strong></div><div><span>估計佔用空間</span><strong id="size">—</strong></div><div><span>可清理紀錄</span><strong id="eligible">—</strong></div><div><span>受保護／待確認</span><strong id="protected">—</strong></div></div>
+    <nav class="tabs" aria-label="功能分頁"><button id="records-tab" class="active">執行紀錄</button><button id="audit-tab">刪除紀錄</button></nav>
+    <section id="records-panel">
+      <div class="toolbar"><label>專案<select id="project"><option value="">全部可存取專案</option></select></label><label>搜尋<input id="search" type="search" placeholder="Build number 或資料夾名稱"></label><label>狀態<select id="status"><option value="">全部狀態</option><option value="ready">可清理</option><option value="protected">受保護／待確認</option></select></label></div>
+      <div id="scan-status" class="scan-status"></div>
+      <div class="selection"><span id="selected-count">已選取 0 筆</span><button id="delete" class="button danger" disabled>刪除選取資料</button></div>
+      <div class="table-wrap"><table><thead><tr><th><input id="select-all" type="checkbox" aria-label="選取畫面上所有可清理紀錄"></th><th>執行資料／專案</th><th>Drone 狀態</th><th>估計大小</th><th>位置</th><th>最近掃描</th></tr></thead><tbody id="records"></tbody></table></div>
+      <div id="empty" class="empty" hidden>尚無執行紀錄。請選擇專案後按「重新掃描」。</div>
+      <p class="footnote">大小依掃描時的磁碟配置估計；共享檔案可能重複計算。刪除前會再次驗證權限及 Drone 狀態。</p>
+    </section>
+    <section id="audit-panel" hidden><div class="audit-head"><p class="muted">保留實際操作人的 Gitea 帳號，資料夾刪除後仍可追蹤。</p><button id="refresh-audit" class="button">更新紀錄</button></div><h2>最近清理工作</h2><div id="operations"></div><h2>稽核事件</h2><div class="table-wrap"><table><thead><tr><th>時間（台北）</th><th>Gitea 操作人</th><th>事件</th><th>專案／工作 ID</th><th>說明</th></tr></thead><tbody id="audit"></tbody></table></div><button id="more-audit" class="button" hidden>載入更早紀錄</button></section>
+  </section>
+  <div id="notice" role="status" hidden></div>
+</main>
+<dialog id="confirm"><h2>刪除選取的執行資料？</h2><p>這會永久刪除實體 run folder，保留 Drone history 與操作稽核。</p><div id="confirm-list"></div><p class="muted">後端會重新檢查每筆紀錄；執行中或無法確認狀態的工作不會被刪除。</p><div class="dialog-actions"><button id="cancel-delete" class="button">取消</button><button id="confirm-delete" class="button danger">確認刪除</button></div></dialog>
+</body></html>

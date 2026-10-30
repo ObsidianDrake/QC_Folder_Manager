@@ -1,0 +1,53 @@
+# 複製為 config.yml；對外 URL、資料目錄與 OAuth 資訊於部署時設定。
+# 所有 host、組織、repository、URL、路徑及 build number 均為虛構範例。
+# 建置目標：RHEL 8.10 / Python 3.9.10；不使用 Docker。
+schema_version: 1
+
+server:
+  listen: "127.0.0.1"  # 反向代理部署；直接對外服務時自行調整。
+  port: 9080
+  public_url: "http://tools.example.com/qc_folder_mgt"  # 範例；改成使用者實際瀏覽的網址，可含子路徑。
+  data_dir: "./data"  # 相對於設定檔；正式部署建議使用本機持久化絕對路徑。
+  workers: 2
+  session_hours: 8
+
+logging:
+  directory: "./data/logs"  # 相對於設定檔；不得位於受管理的 run folder。
+  max_bytes: 10485760       # 每檔 10 MiB；依大小自動 rolling。
+  backup_count: 5          # 目前檔 + 5 份備份，穩態約 60 MiB 上限。
+
+gitea:
+  base_url: "https://git.example.com/gitea"
+  client_id_env: "QC_FOLDER_GITEA_CLIENT_ID"
+  client_secret_env: "QC_FOLDER_GITEA_CLIENT_SECRET"
+  scopes: "read:user read:organization"
+  # Gitea 網站管理員以登入後的 is_admin 判定，不設定帳號白名單。
+
+drone:
+  base_url: "https://ci.example.com/drone"
+  token_env: "QC_FOLDER_DRONE_TOKEN"  # 管理員在伺服器設定；Vendor 不需提供。
+
+hosts:
+  local:
+    environment: "zone-a"
+    transport: "local"  # 直接操作服務主機可存取的 filesystem。
+  remote-worker:
+    environment: "zone-b"
+    transport: "ssh"
+    hostname: "qc-worker.example.com"
+    ssh:
+      user_mode: "current_user"  # 與啟動 web service 的 Linux 帳號相同。
+      python: "python3"  # 遠端主機需 Python >= 3.9；可指定既有 Python 的絕對路徑。
+      timeout_seconds: 1800
+      # 沿用該帳號既有的 SSH config、port、key / agent 與 known_hosts。
+      # 不切換 user、不要求填入 username 或 private key 路徑。
+      # 強制 BatchMode=yes 與 StrictHostKeyChecking=yes。
+
+projects:
+  - id: "example-qc-remote"
+    organization: "ExampleVendor"
+    repository: "Example_QC"
+    host: "remote-worker"
+    run_folder: "/srv/qc/example-project"
+    prefix: "qc"
+    # 虛構案例：此根目錄下的 qc_1234 對應 Drone build #1234。

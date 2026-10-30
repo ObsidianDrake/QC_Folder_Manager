@@ -1,0 +1,15 @@
+# Traefik v2/v3 file provider dynamic configuration; all hosts are fictional.
+# Copy outside this repository and substitute deployment values.
+http:
+  routers:
+    qc-folder-manager:
+      entryPoints:
+        - web  # Use the entryPoint name from your existing Traefik configuration.
+      rule: "Host(`tools.example.com`) && (Path(`/qc_folder_mgt`) || PathPrefix(`/qc_folder_mgt/`))"
+      service: qc-folder-manager
+  services:
+    qc-folder-manager:
+      loadBalancer:
+        servers:
+          # Assumes Traefik and the binary share a host/network namespace.
+          - url: "http://127.0.0.1:9080"
