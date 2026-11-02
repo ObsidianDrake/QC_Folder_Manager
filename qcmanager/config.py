@@ -42,9 +42,22 @@ def url(value, name):
 def load_config(path):
     source = Path(path).resolve()
     try:
-        config = yaml.load(source.read_text(), Loader=UniqueLoader)
-    except (OSError, yaml.YAMLError) as e:
-        raise ConfigError("Cannot read YAML configuration") from e
+        text = source.read_text(encoding="utf-8-sig")
+    except OSError as e:
+        raise ConfigError("Cannot read configuration %s: %s (errno=%s)" %
+                          (ascii(str(source)), ascii(e.strerror or str(e)), e.errno)) from e
+    except UnicodeError as e:
+        raise ConfigError("Configuration %s must be UTF-8 encoded" %
+                          ascii(str(source))) from e
+    try:
+        config = yaml.load(text, Loader=UniqueLoader)
+    except yaml.YAMLError as e:
+        mark = getattr(e, "problem_mark", None)
+        location = (" at line %d, column %d" % (mark.line + 1, mark.column + 1)) if mark else ""
+        # Do not print the YAML source excerpt: it may contain credentials.
+        problem = getattr(e, "problem", None) or "invalid YAML syntax"
+        raise ConfigError("Invalid YAML in %s%s: %s" %
+                          (ascii(str(source)), location, ascii(problem))) from e
     if not isinstance(config, dict) or type(config.get("schema_version")) is not int or config.get("schema_version") != 1:
         raise ConfigError("schema_version must be 1")
     for key in ("gitea", "drone", "hosts"):
