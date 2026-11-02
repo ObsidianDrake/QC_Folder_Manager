@@ -47,6 +47,7 @@ check-config: backend
 
 smoke: executable
 	"$(VENV_PYTHON)" tests/smoke_binary.py dist/qc-folder-manager
+	"$(VENV_PYTHON)" tests/smoke_route_lifecycle.py dist/qc-folder-manager
 
 release: backend
 	env PYTHON="$(abspath $(VENV_PYTHON))" bash scripts/build-rhel8.sh
@@ -54,3 +55,4 @@ release: backend
 clean:
 	@echo 'Removing build/ and dist/ only...'
 	rm -rf -- build dist
+

@@ -94,7 +94,9 @@ cp config.example.yml config.yml
 啟動前修改：
 
 - `server.public_url`：使用者實際瀏覽的網址，允許子路徑，例如 `/qc_folder_mgt`。
-- `server.listen`／`server.port`：預設 `127.0.0.1:9080`，供反向代理使用。範例 public URL 不是已部署的網址。
+- `server.listen`：預設 `127.0.0.1`，供同機反向代理使用。hostname 會綁定其解析的第一個地址；需指定介面時填 IP。
+- `server.port`：省略、`null` 或 `0` 時，由 OS 分配並保留可用 port；填入 `1–65535` 則使用固定 port，已被占用時啟動失敗。實際 port 寫入啟動 log，`public_url` 不隨後端 port 改變。
+- `traefik_api.enable`：預設 `false`。設為 `true` 後以 Bearer token 呼叫 [Traefik-API](https://github.com/ObsidianDrake/Traefik-API)，啟動時自動註冊，正常結束／SIGTERM／Ctrl+C 時移除。完整設定及關閉限制見 [自動註冊](docs/traefik.md#自動註冊與移除)。手動維護代理路由時請保留固定 `server.port`。
 - `server.data_dir`：服務帳號可寫入的本機持久化目錄，必須在 QC 清理範圍之外。
 - `logging.directory`：一般 log 存放位置，預設範例為 `./data/logs`。
 
@@ -148,9 +150,11 @@ logging:
 ```sh
 make test
 .venv/bin/python tests/smoke_binary.py dist/qc-folder-manager
+.venv/bin/python tests/smoke_route_lifecycle.py dist/qc-folder-manager
 ```
 
 第二個指令啟動本機模擬 Gitea／Drone，透過 loopback SSH shim 執行真正 helper，測試打包後 OAuth、子路徑、UI 資產、掃描、刪除保護與稽核；不連公司主機。
+第三個指令啟動隔離的 Traefik-API 模擬服務，驗證 binary 的自動／固定 port、註冊、SIGTERM／Ctrl+C 移除、停用模式與 API 錯誤處理；不修改正式 route。兩個 smoke script 也可傳入 `--source` 測試原始碼。
 測試涵蓋跨組織隔離、管理員限制、權限改變、CSRF、inode 改變、symlink／mount 邊界、稽核失敗、重啟恢復、SSH 結果不明與 log 輪替。
 
 [Drone 整合依據](docs/drone-integration.md)記錄 API 路由與狀態約定。
@@ -180,7 +184,7 @@ Gitea admin 可使用「專案管理」新增、編輯與移除專案；儲存�
 - `server.scan_interval_seconds`：60–86400 秒，預設 300；既有設定省略此欄位即啟用預設值。修改後重啟服務，不需重新建置。
 - 排程由服務主程序啟動，不依賴登入或前端輪詢；`--check-config`／`--preflight` 不啟動排程。關閉服務時先停止排程，再等待已排入的工作完成。
 - 管理頁新增／修改專案後，下次排程檢查自動掃描；移除的專案不再排程。排程與管理 API 共用設定鎖，掃描中不能修改該專案；設定需復原時暫停排程。
-- 列表不再顯示 Last scanned 欄位；後端仍保留 `scanned_at` 供診斷，頁面保留專案掃描中／失敗與最近掃描資訊。每輪掃描會更新目錄清單及 Drone 狀態。
+- 列表不再顯示 Last scanned 欄位及專案掃描完成時間；後端仍保留 `scanned_at` 供診斷，頁面保留尚未掃描、掃描中／失敗與待處理事項。每輪掃描會更新目錄清單及 Drone 狀態。
 - **容量更新時間 / Size updated**：最近一次成功完成該資料夾遞迴容量計算的時間。不是目錄掃描時間。
 - 自動與手動 Rescan 都保留已有容量快取，只為未知容量排入計算。需要重算已有容量時，使用該列或選取紀錄的容量更新按鈕；容量計算失敗時保留舊值與舊時間。
 - 自動掃描沿用原本的刪除保護、資料隔離及服務憑證；不新增使用者權限，也不自動刪除任何資料。

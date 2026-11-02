@@ -3,7 +3,6 @@ import fcntl
 import json
 import logging
 import os
-import signal
 import sys
 from pathlib import Path
 
@@ -60,26 +59,14 @@ def main(argv=None):
             logger = setup_logging(config)
             db = Database(data/'qc-folder-manager.sqlite3')
             db.recover()
-            from .web import create_app
-            from waitress import create_server
-            app = create_app(config,db=db)
-            server = create_server(app,host=config['server']['listen'],port=config['server']['port'],
-                                   threads=8,max_request_body_size=65536,clear_untrusted_proxy_headers=True)
-            def stop(signum, frame):
-                raise KeyboardInterrupt
-            signal.signal(signal.SIGTERM,stop)
-            logger.info('service started version=0.1.0 projects=%d',len(config['projects']))
+            from .server import run_service
             try:
-                app.extensions['manager'].start_scanning(app.extensions['project_settings'])
-                server.run()
-            except KeyboardInterrupt:
-                logger.info('service stopping; waiting for active filesystem work')
+                result = run_service(config, db, logger)
+                if result:
+                    print('Service startup or route cleanup failed; see the operational log.', file=sys.stderr)
+                return result
             finally:
-                server.close()
-                app.extensions['manager'].shutdown()
-                logger.info('service stopped')
                 logging.shutdown()
-        return 0
     except ConfigError as error:
         print('Configuration error: '+str(error),file=sys.stderr)
         return 2

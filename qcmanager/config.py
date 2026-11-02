@@ -1,4 +1,5 @@
 """Validated administrator-owned configuration."""
+import ipaddress
 import os
 import re
 from pathlib import Path
@@ -78,11 +79,13 @@ def validate_config(config, source):
         raise ConfigError("server must be a mapping")
     app["public_url"] = url(app.get("public_url"), "server.public_url")
     app.setdefault("listen", "127.0.0.1")
-    app.setdefault("port", 9080)
+    # Bind port zero directly; the OS chooses and reserves an available port.
+    if app.get("port") is None:
+        app["port"] = 0
     app.setdefault("workers", 2)
     app.setdefault("session_hours", 8)
     app.setdefault("scan_interval_seconds", 300)
-    for name, lo, hi in (("port", 1, 65535), ("workers", 1, 8), ("session_hours", 1, 24), ("scan_interval_seconds", 60, 86400)):
+    for name, lo, hi in (("port", 0, 65535), ("workers", 1, 8), ("session_hours", 1, 24), ("scan_interval_seconds", 60, 86400)):
         if type(app[name]) is not int or not lo <= app[name] <= hi:
             raise ConfigError("Invalid server." + name)
     if not isinstance(app["listen"], str):
@@ -94,6 +97,7 @@ def validate_config(config, source):
     app["base_path"] = urlsplit(app["public_url"]).path.rstrip("/")
     if not re.fullmatch(r"(?:/[A-Za-z0-9_-]+)*", app["base_path"]):
         raise ConfigError("public_url path supports letters, digits, hyphens and underscores")
+    validate_traefik(config)
     logs = config.setdefault('logging', {})
     if not isinstance(logs, dict):
         raise ConfigError('logging must be a mapping')
@@ -185,3 +189,47 @@ def validate_config(config, source):
             if not isinstance(value, str) or not value.strip() or "\r" in value or "\n" in value:
                 raise ConfigError("%s.%s must be a non-empty, single-line string" % (section, key))
     return config
+
+
+def validate_traefik(config):
+    route = config.setdefault('traefik_api', {})
+    if not isinstance(route, dict):
+        raise ConfigError('traefik_api must be a mapping')
+    if set(route) - {'enable', 'base_url', 'token', 'route_name', 'upstream_host', 'timeout_seconds'}:
+        raise ConfigError('Unknown traefik_api setting')
+    route.setdefault('enable', False)
+    if type(route['enable']) is not bool:
+        raise ConfigError('traefik_api.enable must be true or false')
+    if not route['enable']:
+        return
+    try:
+        route['base_url'] = url(route.get('base_url'), 'traefik_api.base_url')
+        if urlsplit(route['base_url']).port == 0:
+            raise ValueError()
+    except ValueError:
+        raise ConfigError('Invalid traefik_api.base_url or port') from None
+    token = route.get('token')
+    if not isinstance(token, str) or not token.strip() or any(ord(c) < 32 or ord(c) > 126 for c in token):
+        raise ConfigError('traefik_api.token must be a non-empty ASCII single-line string')
+    route.setdefault('route_name', 'qc-folder-manager')
+    if not isinstance(route['route_name'], str) or not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,62}', route['route_name']):
+        raise ConfigError('Invalid traefik_api.route_name (lowercase letters, digits and hyphens; max 63)')
+    route.setdefault('timeout_seconds', 30)
+    if type(route['timeout_seconds']) is not int or not 1 <= route['timeout_seconds'] <= 300:
+        raise ConfigError('Invalid traefik_api.timeout_seconds (1-300)')
+    dns = r'(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*'
+    route.setdefault('upstream_host', config['server']['listen'])
+    host = route['upstream_host']
+    if not isinstance(host, str) or not host:
+        raise ConfigError('Invalid traefik_api.upstream_host')
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        if not re.fullmatch(dns, host.lower()) or host == '*':
+            raise ConfigError('traefik_api.upstream_host must be a hostname or IP without a port') from None
+    else:
+        if address.is_unspecified or address.is_multicast or '%' in host:
+            raise ConfigError('traefik_api.upstream_host must be a reachable hostname or IP, not a wildcard')
+    public_host = urlsplit(config['server']['public_url']).hostname
+    if not re.fullmatch(dns, public_host.lower().rstrip('.')):
+        raise ConfigError('Traefik-API requires a DNS name or IPv4 host in server.public_url')

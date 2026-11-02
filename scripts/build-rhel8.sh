@@ -12,6 +12,8 @@ python_bin="${PYTHON:-python3}"
 "$python_bin" -m PyInstaller --clean --noconfirm qc-folder-manager.spec
 dist/qc-folder-manager --config config.example.yml --check-config
 "$python_bin" tests/smoke_binary.py dist/qc-folder-manager
+"$python_bin" tests/smoke_route_lifecycle.py dist/qc-folder-manager
 file dist/qc-folder-manager
 sha256sum dist/qc-folder-manager > dist/qc-folder-manager.sha256
 echo 'RHEL 8.10 binary built. Complete OAuth/SSH UAT before production deployment.'
+

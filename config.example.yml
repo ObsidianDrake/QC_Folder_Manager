@@ -5,12 +5,22 @@ schema_version: 1
 
 server:
   listen: "127.0.0.1"  # 反向代理部署；直接對外服務時自行調整。
-  port: 9080
+  # port: 9080  # 省略、null 或 0：由 OS 分配並保留可用 port；固定 port 則取消註解。
   public_url: "http://tools.example.com/qc_folder_mgt"  # 範例；改成使用者實際瀏覽的網址，可含子路徑。
   data_dir: "./data"  # 相對於設定檔；正式部署建議使用本機持久化絕對路徑。
   workers: 2
   session_hours: 8
   scan_interval_seconds: 300  # 每個專案掃描結束後等待 5 分鐘再掃描；60–86400 秒，修改後需重啟。
+
+traefik_api:
+  enable: false  # true：啟動註冊 route，正常結束／SIGTERM／Ctrl+C 時移除。
+  base_url: "http://route-api.example.com:8000"  # Traefik-API，不是 Traefik dashboard API。
+  token: "replace-with-traefik-api-token"
+  route_name: "qc-folder-manager"
+  upstream_host: "127.0.0.1"  # Traefik 與 API 都可連到的本服務主機；不含 scheme 或 port。
+  timeout_seconds: 30  # 需涵蓋 API 接管舊 route 時的探測時間；1–300 秒。
+  # Host / pathPrefix 從 server.public_url 取得；保留子路徑，不使用 StripPrefix。
+  # 若用手動 Traefik 設定且 enable: false，請指定固定 server.port。
 
 logging:
   directory: "./data/logs"  # 相對於設定檔；不得位於受管理的 run folder。
