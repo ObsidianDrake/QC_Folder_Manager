@@ -1,5 +1,8 @@
 'use strict';
 const translations = {
+  "清理處理中": "Deletion in progress",
+  "掃描失敗，請聯絡管理員並提供專案名稱。": "Scan failed. Contact an administrator and provide the project name.",
+  "操作未完成，請聯絡管理員並提供紀錄編號。": "Operation incomplete. Contact an administrator and provide the record ID.",
   "執行紀錄 · 空間管理": "Build records · Storage management",
   "讓每一次執行，": "Every QC run,",
   "都有清楚的去向。": "clearly accounted for.",

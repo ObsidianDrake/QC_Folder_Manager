@@ -21,7 +21,7 @@
       <div class="toolbar"><label>專案<select id="project"><option value="">全部可存取專案</option></select></label><label>搜尋<input id="search" type="search" placeholder="Build number 或資料夾名稱"></label><label>狀態<select id="status"><option value="">全部狀態</option><option value="ready">可清理</option><option value="protected">受保護／待確認</option></select></label></div>
       <div id="scan-status" class="scan-status"></div>
       <div class="selection"><span id="selected-count">已選取 0 筆</span><div class="selection-actions"><button id="update-sizes" class="button" disabled>更新選取容量</button><button id="delete" class="button danger" disabled>刪除選取資料</button></div></div>
-      <div class="table-wrap"><table><thead><tr><th><input id="select-all" type="checkbox" aria-label="選取畫面上所有可清理紀錄"></th><th>執行資料／專案</th><th>Drone 狀態</th><th>估計大小</th><th>位置</th><th>最近掃描</th></tr></thead><tbody id="records"></tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th><input id="select-all" type="checkbox" aria-label="選取畫面上所有可清理紀錄"></th><th>執行資料／專案</th><th>Drone 狀態</th><th>估計大小</th><th>最近掃描</th></tr></thead><tbody id="records"></tbody></table></div>
       <div id="empty" class="empty" hidden>尚無執行紀錄。請選擇專案後按「重新掃描」。</div>
       <p class="footnote">容量在背景逐筆計算並快取，不會隨開啟頁面重算；總量僅含已知容量。刪除前仍會驗證權限、Drone 狀態及目錄安全。</p>
     </section>
@@ -31,3 +31,4 @@
 </main>
 <dialog id="confirm"><h2>刪除選取的執行資料？</h2><p>這會永久刪除實體 run folder，保留 Drone history 與操作稽核。</p><div id="confirm-list"></div><p class="muted">後端會重新檢查每筆紀錄；執行中或無法確認狀態的工作不會被刪除。</p><div class="dialog-actions"><button id="cancel-delete" class="button">取消</button><button id="confirm-delete" class="button danger">確認刪除</button></div></dialog>
 </body></html>
+

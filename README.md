@@ -156,3 +156,14 @@ make test
 [Drone 整合依據](docs/drone-integration.md)記錄 API 路由與狀態約定。
 正式導入仍需在 UAT 驗證實際 OAuth、遠端 Python／SSH 權限、測試 build 對應與 RHEL binary。
 
+
+## Vendor 資訊邊界
+
+專案選單及摘要只顯示 organization / repository。Run record 保留資料夾名稱、build、
+狀態與容量；刪除確認及操作歷史使用相同的業務識別資訊。
+磁碟卡片保留容量與所屬專案，內部仍依 host / mount 分組，但不公開主機及掛載路徑。
+所有登入者（含 admin）使用相同的瀏覽器回應欄位白名單：不回傳 host、environment、
+完整路徑、mount、inode、SSH 設定、其他組織清單或原始診斷文字。
+歷史 SQLite 紀錄亦在 API 出口過濾；完整操作稽核保留於伺服器資料庫，掃描診斷保留於 rolling log。
+專案 ID、organization / repository、run folder 名稱與 Drone build 連結仍是可見資訊；
+命名這些項目時應避免放入內部機密。

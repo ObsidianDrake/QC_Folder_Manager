@@ -1,3 +1,4 @@
+from . import presentation
 import base64
 import hashlib
 import hmac
@@ -178,12 +179,12 @@ def create_app(config, db=None, gitea=None, drone=None, storage=None):
     @app.get('/api/me')
     @require_login
     def me():
-        return jsonify(user=g.actor,csrf=g.login['csrf'])
+        return jsonify(user=presentation.actor(g.actor),csrf=g.login['csrf'])
 
     @app.get('/api/records')
     @require_login
     def records():
-        return jsonify(manager.inventory(g.actor))
+        return jsonify(presentation.inventory(manager.inventory(g.actor)))
 
     @app.post('/api/scan')
     @require_login
@@ -201,7 +202,7 @@ def create_app(config, db=None, gitea=None, drone=None, storage=None):
     @app.get('/api/disks')
     @require_login
     def disks():
-        return jsonify(disks=manager.disks.snapshot(manager.allowed(g.actor)))
+        return jsonify(disks=presentation.disks(manager.disks.snapshot(manager.allowed(g.actor))))
 
     @app.post('/api/disks/refresh')
     @require_login
@@ -231,7 +232,7 @@ def create_app(config, db=None, gitea=None, drone=None, storage=None):
     @app.get('/api/operations')
     @require_login
     def operations():
-        return jsonify(operations=db.operations(manager.allowed(g.actor)))
+        return jsonify(operations=presentation.operations(db.operations(manager.allowed(g.actor))))
 
     @app.get('/api/audit')
     @require_login
@@ -240,7 +241,7 @@ def create_app(config, db=None, gitea=None, drone=None, storage=None):
         if before is not None and not 1 <= before < 2**63:
             raise RequestError('Invalid audit cursor')
         rows = db.audit(manager.allowed(g.actor),before)
-        return jsonify(events=rows,next_before=rows[-1]['seq'] if len(rows)==100 else None)
+        return jsonify(events=presentation.audit(rows),next_before=rows[-1]['seq'] if len(rows)==100 else None)
 
     app.wsgi_app = Mount(app.wsgi_app,prefix)
     return app
