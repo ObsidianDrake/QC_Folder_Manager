@@ -34,8 +34,6 @@ const translations = {
   "Drone 狀態": "Drone status",
   "估計大小": "Estimated size",
   "位置": "Location",
-  "最近掃描": "Last scanned",
-  "尚無執行紀錄。請選擇專案後按「重新掃描」。": "No records to display. Select a project and click Rescan.",
   "大小依掃描時的磁碟配置估計；共享檔案可能重複計算。刪除前會再次驗證權限及 Drone 狀態。": "Size is estimated from allocated disk blocks at scan time; shared files may be counted more than once. Permissions and Drone status are checked again before deletion.",
   "保留實際操作人的 Gitea 帳號，資料夾刪除後仍可追蹤。": "The operator's Gitea account remains recorded after a folder is deleted.",
   "更新紀錄": "Refresh history",
@@ -130,8 +128,7 @@ const translations = {
   "容量計算中斷": "Size calculation interrupted",
   "確認 Drone 狀態中": "Checking Drone status",
   "已排入 {count} 筆容量計算": "Queued {count} size calculations",
-  "容量在背景逐筆計算並快取，不會隨開啟頁面重算；總量僅含已知容量。刪除前仍會驗證權限、Drone 狀態及目錄安全。": "Sizes are calculated individually in the background and cached, not recalculated when opening this page. Totals include known sizes only. Permissions, Drone status and directory safety are still checked before deletion.",
-  "容量更新時間": "Size last updated",
+  "容量更新時間": "Size updated",
   "磁碟空間": "Disk Space",
   "整個 filesystem 的共用空間，非專案配額。": "Shared filesystem capacity, not a project quota.",
   "更新磁碟資訊": "Refresh disks",
@@ -190,14 +187,16 @@ const translations = {
   "新增專案": "Add project",
   "移除專案只停止納管，不會刪除 QC 資料夾。歷史紀錄仍保留原組織權限。": "Removing a project stops management without deleting QC folders. History retains the original organization permissions.",
   "專案 ID": "Project ID",
-  "專案 ID、Organization 與 Repository 建立後固定；變更歸屬請新增專案。修改路徑後需重新掃描。": "Project ID, organization and repository are fixed after creation. Create a new project to change ownership. Scan again after changing paths.",
   "儲存專案": "Save project",
   "編輯": "Edit",
   "編輯專案": "Edit project",
   "移除專案": "Remove project",
   "移除專案 {project}？此操作不會刪除 QC 資料夾。": "Remove project {project}? This does not delete QC folders.",
   "尚未設定專案，請新增專案。": "No projects configured. Add a project to get started.",
-  "專案設定已儲存並生效，請重新掃描。": "Project settings saved and applied. Scan again to refresh records."
+  "尚無執行紀錄。系統會自動掃描，也可按「重新掃描」立即更新。": "No records to display. Scans run automatically; click Rescan to update now.",
+  "系統定期更新目錄清單與 Drone 狀態；目錄掃描不會重算已有容量。容量更新時間代表上次完成計算的時間；總量僅含已知容量。刪除前仍會重新驗證。": "Folder lists and Drone status update automatically. Folder scans keep cached sizes. Size updated is the last completed size calculation; totals include known sizes only. Deletions are revalidated.",
+  "專案 ID、Organization 與 Repository 建立後固定；變更歸屬請新增專案。儲存後系統會自動重新掃描。": "Project ID, organization and repository are fixed after creation. Create a new project to change ownership. The system rescans automatically after saving.",
+  "專案設定已儲存並生效，系統將自動重新掃描。": "Project settings saved and applied. An automatic rescan will follow."
 };
 const languageKey='qc-folder-manager-language';
 let language='zh-Hant';

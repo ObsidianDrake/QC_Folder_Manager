@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import socket
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -116,6 +117,13 @@ def main(binary):
             raise AssertionError('Timed out waiting for packaged service')
         try:
             eventually(lambda:api('/health')['status']=='ok')
+            # Startup discovery must finish before any OAuth session or Rescan request.
+            def startup_scanned():
+                with sqlite3.connect(str(root/'state'/'qc-folder-manager.sqlite3')) as db:
+                    row=db.execute("SELECT state FROM scans WHERE project='test'").fetchone()
+                    return row and row[0]=='ready' and db.execute('SELECT COUNT(*) FROM records').fetchone()[0]==2
+            eventually(startup_scanned)
+            assert not any('/gitea/' in path for _,path,_ in trace)
             with browser.open(public+'/auth/login',timeout=10) as res:
                 assert b'QC Folder Manager' in res.read()
             me=api('/api/me');csrf=me['csrf'];assert me['user']['login']=='vendor-smoke'
@@ -128,8 +136,9 @@ def main(binary):
             with browser.open(public+'/assets/favicon.svg',timeout=10) as res:
                 assert res.headers.get_content_type() == 'image/svg+xml'
                 assert '🔪' in res.read().decode('utf-8')
+            first_scan=api('/api/records')['scans']['test']['updated']
             api('/api/scan',{'projects':['test']})
-            inventory=eventually(lambda:(lambda x:x if x['scans'].get('test',{}).get('state')=='ready' else None)(api('/api/records')))
+            inventory=eventually(lambda:(lambda x:x if x['scans'].get('test',{}).get('state')=='ready' and x['scans']['test']['updated']>first_scan else None)(api('/api/records')))
             assert len(inventory['records'])==2
             ids={r['number']:r['id'] for r in inventory['records']}
             assert not next(r for r in inventory['records'] if r['number']==1235)['deletable']
@@ -145,14 +154,15 @@ def main(binary):
             assert 'mock-user-token' not in log and 'mock-client-secret' not in log
             Provider.is_admin=True
             settings=api('/api/admin/projects')
+            (root/'other-runs').mkdir()
             new_project={'id':'admin-smoke','organization':'ExampleVendor','repository':'Other_QC',
                          'host':'test-ssh','run_folder':str(root/'other-runs'),'prefix':'qc'}
             settings=api('/api/admin/projects',{'revision':settings['revision'],'action':'create','project':new_project})
             assert any(p['id']=='admin-smoke' for p in api('/api/records')['projects'])
             new_project['prefix']='other'
-            settings=api('/api/admin/projects',{'revision':settings['revision'],'action':'update','project':new_project})
+            settings=eventually(lambda:api('/api/admin/projects',{'revision':settings['revision'],'action':'update','project':new_project}))
             assert yaml.safe_load(config.read_text())['projects'][-1]['prefix']=='other'
-            api('/api/admin/projects',{'revision':settings['revision'],'action':'delete','id':'admin-smoke'})
+            eventually(lambda:api('/api/admin/projects',{'revision':settings['revision'],'action':'delete','id':'admin-smoke'}))
             assert len(yaml.safe_load(config.read_text())['projects'])==1
             Provider.is_admin=False
             from urllib.error import HTTPError
@@ -161,7 +171,7 @@ def main(binary):
                 raise AssertionError('Revoked admin retained access')
             except HTTPError as error:
                 assert error.code==403
-            print('PASS: packaged OAuth+PKCE, subpaths, static UI, SSH helper, scan, protected delete, audit, logs and live admin project CRUD')
+            print('PASS: packaged OAuth+PKCE, subpaths, static UI, SSH helper, automatic startup scan, manual rescan, protected delete, audit, logs and live admin project CRUD')
         except Exception:
             print('Mock provider response trace:',trace)
             if (root/'state'/'logs'/'qc-folder-manager.log').exists():

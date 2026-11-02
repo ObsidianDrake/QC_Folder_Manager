@@ -163,6 +163,8 @@ class ProjectSettings:
         else:
             manager.projects.pop(pid,None)
             manager.locks.pop(pid,None)
+        with manager.guard:
+            manager.scan_finished.pop(pid,None)
         with manager.disks.lock:
             manager.disks.items.pop(pid,None)
             manager.disks.invalidated.pop(pid,None)

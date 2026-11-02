@@ -10,6 +10,7 @@ server:
   data_dir: "./data"  # 相對於設定檔；正式部署建議使用本機持久化絕對路徑。
   workers: 2
   session_hours: 8
+  scan_interval_seconds: 300  # 每個專案掃描結束後等待 5 分鐘再掃描；60–86400 秒，修改後需重啟。
 
 logging:
   directory: "./data/logs"  # 相對於設定檔；不得位於受管理的 run folder。

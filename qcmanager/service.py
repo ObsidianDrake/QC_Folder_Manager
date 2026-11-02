@@ -31,9 +31,17 @@ class Manager:
         self.size_capacity = threading.BoundedSemaphore(200)
         self.pending_sizes = set()
         self.pending_scans = set()
+        self.scan_finished = {}
+        self.scan_scheduler = None
         self.guard = threading.Lock()
         self.capacity = threading.BoundedSemaphore(200)
         self.log = logging.getLogger('qcmanager')
+
+    def start_scanning(self, settings):
+        from .scan_scheduler import ScanScheduler
+        if self.scan_scheduler is None:
+            self.scan_scheduler = ScanScheduler(self, settings, self.config['server']['scan_interval_seconds'])
+            self.scan_scheduler.start()
 
     def allowed(self, actor):
         return {key: p for key,p in self.projects.items() if permitted(actor,p)}
@@ -61,6 +69,10 @@ class Manager:
     def scan(self, pid, actor):
         if pid not in self.allowed(actor):
             raise RequestError('找不到可存取的專案。',404)
+        self._queue_scan(pid)
+
+    def _queue_scan(self, pid):
+        # Caller holds the project settings lock; automatic scans need no user token.
         with self.guard:
             if pid in self.pending_scans:
                 return
@@ -70,6 +82,7 @@ class Manager:
             self.submit(self._scan,pid)
         except Exception:
             with self.guard:
+                self.scan_finished[pid] = time.monotonic()
                 self.pending_scans.discard(pid)
             self.db.finish_scan(pid,error='Scan could not be scheduled')
             raise
@@ -113,6 +126,7 @@ class Manager:
             self.db.finish_scan(pid,error=message)
         finally:
             with self.guard:
+                self.scan_finished[pid] = time.monotonic()
                 self.pending_scans.discard(pid)
 
     def sizes(self, ids, actor):
@@ -272,6 +286,8 @@ class Manager:
             self.log.error('delete interrupted operation=%s filesystem_started=%s',oid,filesystem_started)
 
     def shutdown(self):
+        if self.scan_scheduler is not None:
+            self.scan_scheduler.stop()
         self.pool.shutdown(wait=True)
         self.size_pool.shutdown(wait=True)
         self.disks.shutdown()

@@ -39,9 +39,9 @@
       <div class="toolbar"><label>專案<select id="project"><option value="">全部可存取專案</option></select></label><label>搜尋<input id="search" type="search" placeholder="Build number 或資料夾名稱"></label><label>狀態<select id="status"><option value="">全部狀態</option><option value="ready">可清理</option><option value="protected">受保護／待確認</option></select></label></div>
       <div id="scan-status" class="scan-status"></div>
       <div class="selection"><span id="selected-count">已選取 0 筆</span><div class="selection-actions"><button id="update-sizes" data-icon="refresh" class="button" disabled>更新選取容量</button><button id="delete" data-icon="clean" class="button danger" disabled>刪除選取資料</button></div></div>
-      <div class="table-wrap"><table><thead><tr><th><input id="select-all" type="checkbox" aria-label="選取畫面上所有可清理紀錄"></th><th>執行資料／專案</th><th>Drone 狀態</th><th>估計大小</th><th>最近掃描</th></tr></thead><tbody id="records"></tbody></table></div>
-      <div id="empty" class="empty" hidden>尚無執行紀錄。請選擇專案後按「重新掃描」。</div>
-      <p class="footnote">容量在背景逐筆計算並快取，不會隨開啟頁面重算；總量僅含已知容量。刪除前仍會驗證權限、Drone 狀態及目錄安全。</p>
+      <div class="table-wrap"><table><thead><tr><th><input id="select-all" type="checkbox" aria-label="選取畫面上所有可清理紀錄"></th><th>執行資料／專案</th><th>Drone 狀態</th><th>估計大小</th></tr></thead><tbody id="records"></tbody></table></div>
+      <div id="empty" class="empty" hidden>尚無執行紀錄。系統會自動掃描，也可按「重新掃描」立即更新。</div>
+      <p class="footnote">系統定期更新目錄清單與 Drone 狀態；目錄掃描不會重算已有容量。容量更新時間代表上次完成計算的時間；總量僅含已知容量。刪除前仍會重新驗證。</p>
     </section>
     <section id="admin-panel" hidden>
       <div class="admin-heading"><div><h2>專案管理</h2><p class="muted">僅限 Gitea 管理員。儲存後立即生效，不需重啟。</p></div><div class="selection-actions"><button id="admin-reload" class="button">重新載入設定</button><button id="admin-new" class="button primary">新增專案</button></div></div>
@@ -58,7 +58,7 @@
           <label class="wide">Run folder<input id="edit-run_folder" required placeholder="/srv/qc/example-project"></label>
           <label>Prefix<input id="edit-prefix" required pattern="[A-Za-z0-9][A-Za-z0-9_.-]*" maxlength="128"></label>
         </div>
-        <p class="muted">專案 ID、Organization 與 Repository 建立後固定；變更歸屬請新增專案。修改路徑後需重新掃描。</p>
+        <p class="muted">專案 ID、Organization 與 Repository 建立後固定；變更歸屬請新增專案。儲存後系統會自動重新掃描。</p>
         <div class="dialog-actions"><button id="admin-cancel" class="button" type="button">取消</button><button id="admin-save" class="button primary" type="submit">儲存專案</button></div>
       </form>
     </section>

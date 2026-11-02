@@ -54,7 +54,7 @@ async function saveProject(payload){
     if(epoch!==adminEpoch||!isAdmin)return;
     adminSettings=data;$('project-form').hidden=true;editingProject=null;
     selected.clear();inventory={records:[],projects:[],scans:{}};diskRows=[];operationRows=[];auditRows=[];
-    notice('專案設定已儲存並生效，請重新掃描。');
+    notice('專案設定已儲存並生效，系統將自動重新掃描。');
   }catch(error){if(epoch===adminEpoch)adminError(error);}
   finally{adminSaving=false;$('admin-save').disabled=false;renderAdmin();}
 }

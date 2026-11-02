@@ -70,6 +70,7 @@ def main(argv=None):
             signal.signal(signal.SIGTERM,stop)
             logger.info('service started version=0.1.0 projects=%d',len(config['projects']))
             try:
+                app.extensions['manager'].start_scanning(app.extensions['project_settings'])
                 server.run()
             except KeyboardInterrupt:
                 logger.info('service stopping; waiting for active filesystem work')

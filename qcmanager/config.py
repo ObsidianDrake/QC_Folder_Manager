@@ -81,7 +81,8 @@ def validate_config(config, source):
     app.setdefault("port", 9080)
     app.setdefault("workers", 2)
     app.setdefault("session_hours", 8)
-    for name, lo, hi in (("port", 1, 65535), ("workers", 1, 8), ("session_hours", 1, 24)):
+    app.setdefault("scan_interval_seconds", 300)
+    for name, lo, hi in (("port", 1, 65535), ("workers", 1, 8), ("session_hours", 1, 24), ("scan_interval_seconds", 60, 86400)):
         if type(app[name]) is not int or not lo <= app[name] <= hi:
             raise ConfigError("Invalid server." + name)
     if not isinstance(app["listen"], str):
