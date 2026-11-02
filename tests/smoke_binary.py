@@ -36,6 +36,7 @@ def main(binary):
         trace=[]
         class Provider(BaseHTTPRequestHandler):
             challenge=None
+            is_admin=False
             def log_message(self,*args):pass
             def send_json(self,body,status=200):
                 trace.append((self.command,urlsplit(self.path).path,status))
@@ -56,7 +57,7 @@ def main(binary):
                     if self.headers.get('Authorization')!='Bearer mock-user-token':
                         return self.send_json({},401)
                     if parsed.path.endswith('/user'):
-                        return self.send_json({'id':42,'login':'vendor-smoke','is_admin':False})
+                        return self.send_json({'id':42,'login':'vendor-smoke','is_admin':Provider.is_admin})
                     if parsed.path.endswith('/user/orgs'):
                         return self.send_json([{'name':'ExampleVendor'}] if parse_qs(parsed.query).get('page')==['1'] else [])
                 if parsed.path.startswith('/drone/api/'):
@@ -118,7 +119,7 @@ def main(binary):
             with browser.open(public+'/auth/login',timeout=10) as res:
                 assert b'QC Folder Manager' in res.read()
             me=api('/api/me');csrf=me['csrf'];assert me['user']['login']=='vendor-smoke'
-            for name in ('app.js','style.css','i18n.js'):
+            for name in ('app.js','admin.js','style.css','i18n.js'):
                 with browser.open(public+'/assets/'+name,timeout=10) as res:assert len(res.read())>100
             api('/api/scan',{'projects':['test']})
             inventory=eventually(lambda:(lambda x:x if x['scans'].get('test',{}).get('state')=='ready' else None)(api('/api/records')))
@@ -135,7 +136,25 @@ def main(binary):
             assert 'mock-user-token' not in json.dumps(audit)
             log=(root/'state'/'logs'/'qc-folder-manager.log').read_text()
             assert 'mock-user-token' not in log and 'mock-client-secret' not in log
-            print('PASS: packaged OAuth+PKCE, subpaths, static UI, SSH helper, scan, protected delete, audit and logs')
+            Provider.is_admin=True
+            settings=api('/api/admin/projects')
+            new_project={'id':'admin-smoke','organization':'ExampleVendor','repository':'Other_QC',
+                         'host':'test-ssh','run_folder':str(root/'other-runs'),'prefix':'qc'}
+            settings=api('/api/admin/projects',{'revision':settings['revision'],'action':'create','project':new_project})
+            assert any(p['id']=='admin-smoke' for p in api('/api/records')['projects'])
+            new_project['prefix']='other'
+            settings=api('/api/admin/projects',{'revision':settings['revision'],'action':'update','project':new_project})
+            assert yaml.safe_load(config.read_text())['projects'][-1]['prefix']=='other'
+            api('/api/admin/projects',{'revision':settings['revision'],'action':'delete','id':'admin-smoke'})
+            assert len(yaml.safe_load(config.read_text())['projects'])==1
+            Provider.is_admin=False
+            from urllib.error import HTTPError
+            try:
+                api('/api/admin/projects')
+                raise AssertionError('Revoked admin retained access')
+            except HTTPError as error:
+                assert error.code==403
+            print('PASS: packaged OAuth+PKCE, subpaths, static UI, SSH helper, scan, protected delete, audit, logs and live admin project CRUD')
         except Exception:
             print('Mock provider response trace:',trace)
             if (root/'state'/'logs'/'qc-folder-manager.log').exists():

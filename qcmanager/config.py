@@ -1,4 +1,4 @@
-"""Strict administrator-owned configuration; never accept paths from HTTP requests."""
+"""Validated administrator-owned configuration."""
 import os
 import re
 from pathlib import Path
@@ -58,6 +58,14 @@ def load_config(path):
         problem = getattr(e, "problem", None) or "invalid YAML syntax"
         raise ConfigError("Invalid YAML in %s%s: %s" %
                           (ascii(str(source)), location, ascii(problem))) from e
+    config = validate_config(config, source)
+    config['_source_path'] = str(source)
+    config['_source_digest'] = __import__('hashlib').sha256(text.encode('utf-8')).hexdigest()
+    return config
+
+
+def validate_config(config, source):
+    source = Path(source).resolve()
     if not isinstance(config, dict) or type(config.get("schema_version")) is not int or config.get("schema_version") != 1:
         raise ConfigError("schema_version must be 1")
     for key in ("gitea", "drone", "hosts"):
@@ -137,8 +145,8 @@ def load_config(path):
             if type(timeout) is not int or not 10 <= timeout <= 86400:
                 raise ConfigError("Invalid SSH timeout")
     projects = config.get("projects")
-    if not isinstance(projects, list) or not projects:
-        raise ConfigError("At least one project is required")
+    if not isinstance(projects, list):
+        raise ConfigError("projects must be a list")
     ids, roots = set(), []
     for p in projects:
         if not isinstance(p, dict):

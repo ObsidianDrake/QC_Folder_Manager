@@ -162,8 +162,15 @@ make test
 專案選單及摘要只顯示 organization / repository。Run record 保留資料夾名稱、build、
 狀態與容量；刪除確認及操作歷史使用相同的業務識別資訊。
 磁碟卡片保留容量與所屬專案，內部仍依 host / mount 分組，但不公開主機及掛載路徑。
-所有登入者（含 admin）使用相同的瀏覽器回應欄位白名單：不回傳 host、environment、
+一般工作區的所有登入者（含 admin）使用相同的瀏覽器回應欄位白名單：不回傳 host、environment、
 完整路徑、mount、inode、SSH 設定、其他組織清單或原始診斷文字。
 歷史 SQLite 紀錄亦在 API 出口過濾；完整操作稽核保留於伺服器資料庫，掃描診斷保留於 rolling log。
 專案 ID、organization / repository、run folder 名稱與 Drone build 連結仍是可見資訊；
 命名這些項目時應避免放入內部機密。
+
+## 管理員專案設定
+
+Gitea admin 可使用「專案管理」新增、編輯與移除專案；儲存會原子更新 `config.yml` 並立即生效。
+可編輯 host（從既有設定選取）、run folder 與 prefix。ID、organization / repository 固定以保留歷史權限。
+移除只停止納管，實體資料與歷史紀錄不刪除。一般 vendor 無法存取管理 API 或內部設定。
+詳見 [部署文件](docs/deployment.md#管理員即時管理專案)。

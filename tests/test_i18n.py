@@ -29,7 +29,7 @@ def test_static_text_and_accessibility_labels_have_english_translations():
 
 def test_controlled_server_messages_have_english_translations():
     translations = catalog()
-    for filename in ('service.py', 'web.py', 'storage.py', 'presentation.py'):
+    for filename in ('service.py', 'web.py', 'storage.py', 'presentation.py', 'project_settings.py'):
         tree = ast.parse((ROOT/'qcmanager'/filename).read_text())
         for node in ast.walk(tree):
             if isinstance(node, ast.Constant) and isinstance(node.value, str) and re.search('[\u4e00-\u9fff]', node.value):

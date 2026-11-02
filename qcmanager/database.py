@@ -15,6 +15,11 @@ class Database:
         with self.connect() as db:
             db.executescript('''
                 PRAGMA journal_mode=WAL;
+                CREATE TABLE IF NOT EXISTS project_catalog (id TEXT PRIMARY KEY, definition TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS project_config_audit (
+                    seq INTEGER PRIMARY KEY AUTOINCREMENT, at REAL NOT NULL, actor TEXT NOT NULL,
+                    action TEXT NOT NULL, project TEXT NOT NULL, previous TEXT, current TEXT);
+
                 CREATE TABLE IF NOT EXISTS records (
                     id TEXT PRIMARY KEY, project TEXT NOT NULL, name TEXT NOT NULL,
                     payload TEXT NOT NULL, UNIQUE(project,name));
@@ -166,3 +171,4 @@ class Database:
             rows = db.execute('SELECT * FROM audit WHERE project IN (%s) AND seq < ? ORDER BY seq DESC LIMIT 100' % marks,
                               tuple(allowed)+(before or 2**63-1,)).fetchall()
         return [dict(r,actor=json.loads(r['actor']),detail=json.loads(r['detail'])) for r in rows]
+

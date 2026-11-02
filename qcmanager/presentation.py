@@ -50,6 +50,6 @@ def audit(rows):
         if isinstance(row['detail'].get('target'), dict):
             detail['target'] = target(row['detail']['target'])
         detail['message'] = operation_message(row['event'])
-        result.append(dict(select(row, ('seq', 'at', 'operation', 'project', 'event')),
+        result.append(dict(select(row, ('seq', 'at', 'operation', 'project', 'event', 'organization', 'repository')),
                            actor=actor(row['actor']), detail=detail))
     return result

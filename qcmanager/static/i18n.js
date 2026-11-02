@@ -1,5 +1,6 @@
 'use strict';
 const translations = {
+  "此專案的背景工作仍在執行，請等待完成後再儲存。": "This project has active background jobs. Retry after they finish.",
   "清理處理中": "Deletion in progress",
   "掃描失敗，請聯絡管理員並提供專案名稱。": "Scan failed. Contact an administrator and provide the project name.",
   "操作未完成，請聯絡管理員並提供紀錄編號。": "Operation incomplete. Contact an administrator and provide the record ID.",
@@ -166,7 +167,37 @@ const translations = {
   "無法啟動 SSH，請檢查服務主機的 ssh 指令與執行權限。": "Cannot start SSH. Check the local ssh command and execution permissions.",
   "SSH 回傳的資料不是有效 JSON，請檢查 shell 啟動訊息是否混入 stdout。": "SSH returned invalid JSON. Check whether shell startup messages are mixed into stdout.",
   "遠端 Python 版本過舊，需要 Python 3.9 以上。": "Remote Python is too old. Python 3.9 or newer is required.",
-  "掃描發生非預期錯誤，請查看服務 log 的診斷資訊。": "Unexpected scan error. Check the service log diagnostics."
+  "掃描發生非預期錯誤，請查看服務 log 的診斷資訊。": "Unexpected scan error. Check the service log diagnostics.",
+  "專案設定目前無法寫入。": "Project settings are not writable",
+  "專案設定請求格式不正確。": "Invalid project request",
+  "設定已被其他管理員修改，請重新載入專案清單。": "Configuration changed; reload the project list",
+  "不支援此專案操作。": "Invalid project action",
+  "背景工作仍在執行，請等待完成後再儲存。": "Background jobs are active; retry after they finish",
+  "專案 ID 不正確。": "Invalid project ID",
+  "找不到專案。": "Project not found",
+  "請填寫所有專案欄位。": "All project fields are required",
+  "專案 ID 已存在。": "Project ID already exists",
+  "專案歸屬不可變更，請使用新的專案 ID 新增專案。": "Project ID, organization and repository are immutable; create a new project",
+  "此專案仍有待核對的清理工作，請先由管理員確認結果。": "Unresolved cleanup jobs exist; reconcile them before changing this project",
+  "設定檔已在外部修改，請重啟服務後再編輯。": "Configuration file changed externally; restart the service before editing",
+  "無法讀取或驗證設定檔，請查看伺服器設定。": "Cannot read or validate the configuration file",
+  "專案設定儲存失敗，請檢查設定檔目錄權限與可用空間。": "Cannot save project settings; check configuration directory permissions and disk space",
+  "專案設定需要管理員復原，請重啟服務。": "Project settings require administrator recovery; restart the service",
+  "此功能僅限 Gitea 管理員。": "Gitea administrator access required",
+  "專案管理": "Project administration",
+  "僅限 Gitea 管理員。儲存後立即生效，不需重啟。": "Gitea administrators only. Changes apply immediately without restarting.",
+  "重新載入設定": "Reload settings",
+  "新增專案": "Add project",
+  "移除專案只停止納管，不會刪除 QC 資料夾。歷史紀錄仍保留原組織權限。": "Removing a project stops management without deleting QC folders. History retains the original organization permissions.",
+  "專案 ID": "Project ID",
+  "專案 ID、Organization 與 Repository 建立後固定；變更歸屬請新增專案。修改路徑後需重新掃描。": "Project ID, organization and repository are fixed after creation. Create a new project to change ownership. Scan again after changing paths.",
+  "儲存專案": "Save project",
+  "編輯": "Edit",
+  "編輯專案": "Edit project",
+  "移除專案": "Remove project",
+  "移除專案 {project}？此操作不會刪除 QC 資料夾。": "Remove project {project}? This does not delete QC folders.",
+  "尚未設定專案，請新增專案。": "No projects configured. Add a project to get started.",
+  "專案設定已儲存並生效，請重新掃描。": "Project settings saved and applied. Scan again to refresh records."
 };
 const languageKey='qc-folder-manager-language';
 let language='zh-Hant';

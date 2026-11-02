@@ -16,6 +16,7 @@ from .clients import APIError, Gitea, Drone
 from .database import Database
 from .service import Manager, RequestError
 from .storage import Storage
+from .project_settings import ProjectSettings
 
 
 class Sessions:
@@ -70,7 +71,12 @@ def create_app(config, db=None, gitea=None, drone=None, storage=None):
     sessions = Sessions()
     db = db or Database(Path(config['server']['data_dir'])/'qc-folder-manager.sqlite3')
     manager = Manager(config,db,gitea or Gitea(config),drone or Drone(config),storage or Storage(config))
-    app.extensions.update(manager=manager,sessions=sessions,cookie_name=cookie_name)
+    try:
+        settings = ProjectSettings(config,db,manager)
+    except Exception:
+        manager.shutdown()
+        raise
+    app.extensions.update(manager=manager,sessions=sessions,cookie_name=cookie_name,project_settings=settings)
 
     def set_cookie(response, key, lifetime):
         response.set_cookie(cookie_name,key,max_age=lifetime,httponly=True,samesite='Lax',
@@ -95,7 +101,10 @@ def create_app(config, db=None, gitea=None, drone=None, storage=None):
                     raise RequestError('Gitea 登入已過期，請重新登入。',401)
                 raise
             g.actor, g.login = actor,login
-            return fn(*args,**kwargs)
+            with settings.lock:
+                if settings.broken:
+                    raise RequestError('專案設定需要管理員復原，請重啟服務。',503)
+                return fn(*args,**kwargs)
         return wrapped
 
     @app.after_request
@@ -135,7 +144,7 @@ def create_app(config, db=None, gitea=None, drone=None, storage=None):
 
     @app.get('/assets/<name>')
     def asset(name):
-        if name not in ('app.js','style.css','i18n.js'):
+        if name not in ('app.js','admin.js','style.css','i18n.js'):
             raise RequestError('Not found',404)
         response = send_from_directory(str(static),name)
         response.headers['Content-Type'] = ('text/javascript' if name.endswith('.js') else 'text/css') + '; charset=utf-8'
@@ -232,7 +241,7 @@ def create_app(config, db=None, gitea=None, drone=None, storage=None):
     @app.get('/api/operations')
     @require_login
     def operations():
-        return jsonify(operations=presentation.operations(db.operations(manager.allowed(g.actor))))
+        return jsonify(operations=presentation.operations(db.operations(settings.history_allowed(g.actor))))
 
     @app.get('/api/audit')
     @require_login
@@ -240,8 +249,26 @@ def create_app(config, db=None, gitea=None, drone=None, storage=None):
         before = request.args.get('before',type=int)
         if before is not None and not 1 <= before < 2**63:
             raise RequestError('Invalid audit cursor')
-        rows = db.audit(manager.allowed(g.actor),before)
+        history = settings.history_allowed(g.actor)
+        rows = db.audit(history,before)
+        for row in rows:
+            project = history[row['project']]
+            row.update(organization=project['organization'],repository=project['repository'])
         return jsonify(events=presentation.audit(rows),next_before=rows[-1]['seq'] if len(rows)==100 else None)
+
+    @app.get('/api/admin/projects')
+    @require_login
+    def admin_projects():
+        if not g.actor.get('is_admin'):
+            raise RequestError('此功能僅限 Gitea 管理員。',403)
+        return jsonify(settings.snapshot())
+
+    @app.post('/api/admin/projects')
+    @require_login
+    def save_admin_project():
+        if not g.actor.get('is_admin'):
+            raise RequestError('此功能僅限 Gitea 管理員。',403)
+        return jsonify(settings.save(request.get_json(silent=True),g.actor))
 
     app.wsgi_app = Mount(app.wsgi_app,prefix)
     return app

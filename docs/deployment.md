@@ -223,3 +223,25 @@ UI 會依失敗原因顯示目錄不存在、存取權限不足、SSH 主機金�
 SSH stderr 只用來分類已知錯誤，不原樣寫入 log；未知錯誤保留 exit_code。
 不記錄完整 SSH 命令、helper 原始碼、任意例外內容或回傳本文。
 診斷資訊仍使用既有 rolling log 容量限制。
+
+### 管理員即時管理專案
+
+以 Gitea 網站管理員登入後，開啟「專案管理」。可新增專案、修改既有專案的 host、run folder、prefix，
+以及移除專案。Host 選單來自 `config.yml` 的 `hosts`；此頁不修改 host 連線或憑證，且不回傳任何密碼/token。
+每次管理 API 都重新向 Gitea 驗證 `is_admin`，寫入另需目前登入 session 的 CSRF token。
+
+UI 儲存會驗證完整設定，使用同目錄暫存檔與原子替換更新實際啟動時的 `config.yml`（權限 600），
+隨即更新記憶體內的專案設定，無需重啟、重新 make 或重新登入。
+服務帳號需要設定檔目錄的建立／替換檔案權限。YAML 會重新格式化，註解不會保留；其他設定值維持原樣。
+不另外產生含憑證的設定備份。外部手動編輯設定檔仍須重啟；UI 偵測到外部變更會拒絕覆蓋。
+多位管理員以 revision 檢查避免覆蓋彼此修改；遇到衝突請重新載入清單。
+
+只有受到修改的專案必須沒有執行中／排隊的掃描、容量、磁碟查詢或刪除工作；其他專案可以繼續運作。
+有 unknown／partial 清理結果的專案須先人工核對，不能直接移除或改路徑。
+儲存成功後清除該專案的舊 inventory、scan 與 disk cache；重新掃描後才能再次刪除紀錄。
+移除專案只停止納管，不刪除 run folder、Drone build 或歷史稽核。允許移除最後一個專案（`projects: []`）。
+
+Project ID、organization、repository 是歷史紀錄的固定歸屬，建立後不可改成其他值；需改歸屬時建立新 ID。
+刪除後也不能將同一 ID 轉交另一組織／repository。舊操作與稽核仍依原組織授權顯示，admin 可見全部歷史。
+`project_catalog` 保存歸屬；`project_config_audit` 保存每次設定修改的 Gitea 操作者、時間、動作與前後專案設定。
+這些資料存於既有 SQLite，管理頁不回傳 host 密碼或服務 token。
