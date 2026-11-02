@@ -1,5 +1,7 @@
 -r requirements.txt
-pyinstaller==6.16.0
+# 6.16 adds a Py_ENABLE_SHARED gate that rejects some installations with
+# separately provided libpython. Keep the pre-6.16 library discovery behavior.
+pyinstaller==6.15.0
 pyinstaller-hooks-contrib==2025.9
 altgraph==0.17.4
 packaging==25.0

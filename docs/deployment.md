@@ -22,7 +22,20 @@ Makefile 自動建立 `.venv` 並安裝固定版本依賴；不需 activate，�
 產物 `dist/qc-folder-manager` 與 SHA256 可複製到服務目錄；執行主機不需 pip 套件。
 `make` 或 `make build` 可在其他 Linux 做開發驗證，不能據此宣稱 RHEL 相容。
 
+### 建置時的 Python shared library 相容性
+
+建置依賴固定為 PyInstaller 6.15.0。6.16.0 改為先檢查 Python 的
+`Py_ENABLE_SHARED` metadata，某些另行提供 `libpython` 的安裝會因此被拒絕，
+即使舊版 PyInstaller 能找到 shared library。6.15.0 保留原本的實際 library 搜尋方式；
+仍需要可用的 shared library，不會把靜態 library 當成替代品。
+
+更新程式後直接執行 `make`；requirements 的變更會自動觸發 venv 依賴更新，
+不需要刪除 venv、重新編譯 Python 或修改 production config。
+LSF Dashboard 未固定 PyInstaller 版本，因此僅比較兩邊 Makefile 並不能確認
+公司實際安裝的版本相同。
+
 ## 設定
+
 
 複製 `config.example.yml` 為 `config.yml`，填入正式的 public URL、listen address、port 與 data/log 目錄。
 建議 SQLite 放在服務主機的本機持久化 filesystem，避免 NFS 上的 SQLite 鎖定問題。
