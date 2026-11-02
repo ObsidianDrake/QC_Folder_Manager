@@ -90,7 +90,7 @@ def main(binary):
              'gitea':{'base_url':origin+'/gitea','client_id':'mock-client','client_secret':'mock-client-secret'},
              'drone':{'base_url':origin+'/drone','token':'mock-drone-token'},
              'hosts':{'test-ssh':{'transport':'ssh','environment':'zone-b','hostname':'smoke-only',
-                                'ssh':{'python':sys.executable,'user_mode':'current_user','timeout_seconds':30}}},
+                                'ssh':{'python':sys.executable,'timeout_seconds':30}}},
              'projects':[{'id':'test','organization':'ExampleVendor','repository':'Example_QC','host':'test-ssh',
                           'run_folder':str(runs),'prefix':'qc'}]}
         config=root/'config.yml';config.write_text(yaml.safe_dump(cfg))

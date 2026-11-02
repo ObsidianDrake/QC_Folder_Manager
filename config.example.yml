@@ -36,7 +36,6 @@ hosts:
     transport: "ssh"
     hostname: "qc-worker.example.com"
     ssh:
-      user_mode: "current_user"  # 與啟動 web service 的 Linux 帳號相同。
       python: "python3"  # 遠端主機需 Python >= 3.9；可指定既有 Python 的絕對路徑。
       timeout_seconds: 1800
       # 沿用該帳號既有的 SSH config、port、key / agent 與 known_hosts。

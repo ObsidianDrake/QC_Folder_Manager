@@ -81,7 +81,6 @@ askpass 暫存腳本放在 data_dir，該位置需允許執行腳本，結束或
 
 ```yaml
 ssh:
-  user_mode: "current_user"
   python: "python3"
   password: "replace-with-linux-password"
   host_key_checking: "accept-new"

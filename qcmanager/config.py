@@ -111,10 +111,8 @@ def load_config(path):
             if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", host.get("hostname", "")):
                 raise ConfigError("Invalid SSH hostname/alias")
             ssh = host.setdefault("ssh", {})
-            if not isinstance(ssh, dict) or set(ssh) - {"user_mode", "python", "timeout_seconds", "password", "host_key_checking", "known_hosts"}:
+            if not isinstance(ssh, dict) or set(ssh) - {"python", "timeout_seconds", "password", "host_key_checking", "known_hosts"}:
                 raise ConfigError("Unknown SSH setting")
-            if ssh.setdefault("user_mode", "current_user") != "current_user":
-                raise ConfigError("SSH must use the current service user")
             if 'password' in ssh:
                 password = ssh['password']
                 if not isinstance(password, str) or not password or any(c in password for c in ('\x00', '\r', '\n')):
