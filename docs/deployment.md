@@ -24,10 +24,12 @@ Makefile 自動建立 `.venv` 並安裝固定版本依賴；不需 activate，�
 
 ### 建置時的 Python shared library 相容性
 
-建置依賴固定為 PyInstaller 6.15.0。6.16.0 改為先檢查 Python 的
-`Py_ENABLE_SHARED` metadata，某些另行提供 `libpython` 的安裝會因此被拒絕，
-即使舊版 PyInstaller 能找到 shared library。6.15.0 保留原本的實際 library 搜尋方式；
-仍需要可用的 shared library，不會把靜態 library 當成替代品。
+建置依賴固定為 PyInstaller 6.22.3，與已成功建置的參考專案版本對齊。
+6.16.0 會因 `Py_ENABLE_SHARED=0` 拒絕部分另行提供 shared library 的安裝；
+6.22.3 會在該 Python 的 `sys.base_prefix` 與其 `lib/` 目錄尋找對應 shared library。
+因此 `INSTSONAME` 回報 `libpython3.9.a` 不代表整個安裝不存在 `.so`。
+仍需真正的 shared library；不會把 `.a` 當成可打包替代品。
+`make` 在打包前會列印實際 Python、PyInstaller 版本與直譯器路徑。
 
 更新程式後直接執行 `make`；requirements 的變更會自動觸發 venv 依賴更新，
 不需要刪除 venv、重新編譯 Python 或修改 production config。

@@ -35,6 +35,7 @@ backend: $(DEPS_STAMP)
 
 executable: backend
 	@echo 'Building QC Folder Manager (UI and SSH helper included)...'
+	@"$(VENV_PYTHON)" -c 'import sys, PyInstaller; print("Python:", sys.version.split()[0], "| PyInstaller:", PyInstaller.__version__); print("Interpreter:", sys.executable)'
 	"$(VENV_PYTHON)" -m PyInstaller --clean --noconfirm qc-folder-manager.spec
 	@echo 'Build complete: dist/qc-folder-manager'
 	@echo 'Configuration is external; use --config /path/to/config.yml'
