@@ -129,14 +129,16 @@ def create_app(config, db=None, gitea=None, drone=None, storage=None):
 
     @app.get('/')
     def index():
-        content = (static/'index.html').read_text().replace('__BASE__',prefix)
+        content = (static/'index.html').read_text(encoding='utf-8').replace('__BASE__',prefix)
         return make_response(content)
 
     @app.get('/assets/<name>')
     def asset(name):
         if name not in ('app.js','style.css','i18n.js'):
             raise RequestError('Not found',404)
-        return send_from_directory(str(static),name)
+        response = send_from_directory(str(static),name)
+        response.headers['Content-Type'] = ('text/javascript' if name.endswith('.js') else 'text/css') + '; charset=utf-8'
+        return response
 
     @app.get('/auth/login')
     def login():
@@ -242,3 +244,4 @@ def create_app(config, db=None, gitea=None, drone=None, storage=None):
 
     app.wsgi_app = Mount(app.wsgi_app,prefix)
     return app
+
