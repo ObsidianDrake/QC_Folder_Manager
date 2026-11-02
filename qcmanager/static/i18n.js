@@ -149,7 +149,7 @@ const translations = {
   "檔案系統檢查失敗，請查看服務 log 的錯誤類型與 errno。": "Filesystem inspection failed. Check the exception type and errno in the service log.",
   "SSH 主機金鑰驗證失敗，請檢查服務帳號的 known_hosts。": "SSH host key verification failed. Check the service account known_hosts.",
   "SSH 主機金鑰已變更，請確認遠端主機後更新 known_hosts。": "SSH host key changed. Verify the remote host before updating known_hosts.",
-  "SSH 或遠端命令權限不足，請以服務帳號確認免密碼 SSH 與 Python 執行權限。": "SSH or remote command permission denied. Check passwordless SSH and Python execution permissions as the service account.",
+  "SSH 認證或遠端命令被拒絕，請檢查帳號密碼、SSH key 與 Python 執行權限。": "SSH authentication or remote command denied. Check the account password, SSH key and Python execution permissions.",
   "SSH 無法解析主機名稱，請檢查 hostname 與 DNS。": "SSH could not resolve the hostname. Check hostname and DNS.",
   "SSH 連線被拒絕，請檢查遠端 SSH 服務與連接埠。": "SSH connection refused. Check the remote SSH service and port.",
   "SSH 無法連到遠端主機，請檢查網路路由。": "SSH host unreachable. Check network routing.",

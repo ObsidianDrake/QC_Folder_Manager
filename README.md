@@ -45,7 +45,8 @@
 
 - `transport: local`：直接操作服務所在主機可存取的 filesystem，不需要 SSH hostname。
 - `transport: ssh`：使用服務程序的有效 Linux 帳號連線，不執行 sudo / su。
-  沿用該帳號的 OpenSSH config、port、key / agent 與 known_hosts，強制 batch mode 及 host key 驗證。
+  沿用該帳號的 OpenSSH config、port、key / agent 與 known_hosts，未填密碼時使用 batch mode；也可在 `ssh.password` 直接填入密碼。
+  `ssh.host_key_checking: accept-new` 會使用服務專用 known_hosts，自動保存首次金鑰並拒絕變更的金鑰。
 - 遠端 helper 透過 stdin JSON 接收操作資料，不把使用者提供的路徑拼接為 shell command。
 - **SSH 遠端主機需有 Python 3.9+**，只使用標準函式庫、不需 pip 套件。可用 `hosts.remote-worker.ssh.python` 指定既有直譯器絕對路徑。
   本機 binary 內含 Python 不代表遠端也有；用 `--preflight` 檢查。

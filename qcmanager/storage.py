@@ -11,6 +11,7 @@ from pathlib import Path
 
 from . import fs_helper
 from .diagnostics import exception_details
+from .ssh_auth import password_environment
 
 
 class StorageError(RuntimeError):
@@ -40,7 +41,7 @@ def ssh_failure(returncode, stderr, uncertain=False):
     cases = [
         ('host key verification failed', 'host_key', 'SSH 主機金鑰驗證失敗，請檢查服務帳號的 known_hosts。'),
         ('remote host identification has changed', 'host_key_changed', 'SSH 主機金鑰已變更，請確認遠端主機後更新 known_hosts。'),
-        ('permission denied', 'permission_denied', 'SSH 或遠端命令權限不足，請以服務帳號確認免密碼 SSH 與 Python 執行權限。'),
+        ('permission denied', 'permission_denied', 'SSH 認證或遠端命令被拒絕，請檢查帳號密碼、SSH key 與 Python 執行權限。'),
         ('could not resolve hostname', 'dns', 'SSH 無法解析主機名稱，請檢查 hostname 與 DNS。'),
         ('connection refused', 'refused', 'SSH 連線被拒絕，請檢查遠端 SSH 服務與連接埠。'),
         ('no route to host', 'unreachable', 'SSH 無法連到遠端主機，請檢查網路路由。'),
@@ -60,6 +61,7 @@ def ssh_failure(returncode, stderr, uncertain=False):
 class Storage:
     def __init__(self, config):
         self.hosts = config['hosts']
+        self.data_dir = config['server']['data_dir']
 
     def request(self, project, action, **fields):
         body = dict(action=action, root=project['run_folder'], prefix=project['prefix'], **fields)
@@ -74,8 +76,19 @@ class Storage:
             payload = base64.b64encode(source).decode('ascii')
             script = "import base64;exec(compile(base64.b64decode('%s'),'<qc-helper>','exec'))" % payload
             ssh = host['ssh']
+            password = ssh.get('password')
+            policy = 'accept-new' if ssh.get('host_key_checking') == 'accept-new' else 'yes'
+            options = ['-o', 'BatchMode=' + ('no' if password is not None else 'yes'),
+                       '-o', 'StrictHostKeyChecking=' + policy]
+            if ssh.get('known_hosts'):
+                known = Path(ssh['known_hosts'])
+                known.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+                options += ['-o', 'UserKnownHostsFile="' + str(known) + '"']
+            if password is not None:
+                options += ['-o', 'PreferredAuthentications=password', '-o', 'PasswordAuthentication=yes',
+                            '-o', 'PubkeyAuthentication=no', '-o', 'NumberOfPasswordPrompts=1']
             command = [
-                'ssh', '-T', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes',
+                'ssh', '-T', *options,
                 '-o', 'ConnectTimeout=10', '-o', 'ServerAliveInterval=15', '-o', 'ServerAliveCountMax=3',
                 '-o', 'ClearAllForwardings=yes', '-o', 'PermitLocalCommand=no',
                 '-l', pwd.getpwuid(os.geteuid()).pw_name, host['hostname'],
@@ -89,9 +102,10 @@ class Storage:
                         environment['LD_LIBRARY_PATH'] = environment['LD_LIBRARY_PATH_ORIG']
                     else:
                         environment.pop('LD_LIBRARY_PATH',None)
-                proc = subprocess.run(command, input=json.dumps(body), text=True, encoding='utf-8', errors='replace',
-                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                      timeout=min(20,ssh['timeout_seconds']) if action=='disk' else ssh['timeout_seconds'], check=False, env=environment)
+                with password_environment(environment, password, self.data_dir) as child_environment:
+                    proc = subprocess.run(command, input=json.dumps(body), text=True, encoding='utf-8', errors='replace',
+                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                          timeout=min(20,ssh['timeout_seconds']) if action=='disk' else ssh['timeout_seconds'], check=False, env=child_environment, start_new_session=True)
             except subprocess.TimeoutExpired as e:
                 raise StorageError('SSH command timed out', action == 'delete',
                                    {'timeout_seconds': e.timeout}, 'SSH 命令執行逾時，請檢查遠端負載或調整 ssh.timeout_seconds。') from e

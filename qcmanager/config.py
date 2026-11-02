@@ -111,10 +111,27 @@ def load_config(path):
             if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", host.get("hostname", "")):
                 raise ConfigError("Invalid SSH hostname/alias")
             ssh = host.setdefault("ssh", {})
-            if not isinstance(ssh, dict) or set(ssh) - {"user_mode", "python", "timeout_seconds"}:
-                raise ConfigError("SSH supports user_mode, python and timeout_seconds only")
+            if not isinstance(ssh, dict) or set(ssh) - {"user_mode", "python", "timeout_seconds", "password", "host_key_checking", "known_hosts"}:
+                raise ConfigError("Unknown SSH setting")
             if ssh.setdefault("user_mode", "current_user") != "current_user":
                 raise ConfigError("SSH must use the current service user")
+            if 'password' in ssh:
+                password = ssh['password']
+                if not isinstance(password, str) or not password or any(c in password for c in ('\x00', '\r', '\n')):
+                    raise ConfigError('ssh.password must be a non-empty single-line string')
+            policy = ssh.setdefault('host_key_checking', 'strict')
+            if policy not in ('strict', 'accept-new'):
+                raise ConfigError('ssh.host_key_checking must be strict or accept-new')
+            if policy == 'accept-new':
+                ssh.setdefault('known_hosts', str(Path(app['data_dir'])/'ssh_known_hosts'))
+            if 'known_hosts' in ssh:
+                known = ssh['known_hosts']
+                if not isinstance(known,str) or not known.strip() or any(c in known for c in ('\x00','\r','\n','"','%')):
+                    raise ConfigError('ssh.known_hosts must be a file path')
+                known = (source.parent / known).resolve()
+                if str(known).startswith('/dev/'):
+                    raise ConfigError('ssh.known_hosts must be a persistent file, not a device')
+                ssh['known_hosts'] = str(known)
             executable = ssh.setdefault("python", "python3")
             if not isinstance(executable, str) or not re.fullmatch(r"/?[A-Za-z0-9_./-]+", executable) or executable.startswith("-"):
                 raise ConfigError("Invalid remote Python executable")

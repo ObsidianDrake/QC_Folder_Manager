@@ -41,7 +41,12 @@ hosts:
       timeout_seconds: 1800
       # 沿用該帳號既有的 SSH config、port、key / agent 與 known_hosts。
       # 不切換 user、不要求填入 username 或 private key 路徑。
-      # 強制 BatchMode=yes 與 StrictHostKeyChecking=yes。
+      # 未填 password 時沿用 SSH key / agent；填入後使用密碼登入。
+      # password: "replace-with-linux-password"
+      # strict 沿用既有主機信任設定；accept-new 自動保存首次見到的金鑰，拒絕變更的金鑰。
+      host_key_checking: "strict"
+      # accept-new 預設使用 <server.data_dir>/ssh_known_hosts，覆蓋系統的 /dev/null 設定。
+      # known_hosts: "./data/ssh_known_hosts"
 
 projects:
   - id: "example-qc-remote"

@@ -4,7 +4,7 @@
 
 - Web service：Linux 服務主機、RHEL 8.10、Python 3.9.10，不能使用 Docker。
 - 執行／SSH 帳號：啟動 web service 的同一個 Linux 帳號；不需填入 username、不使用 sudo / su。
-- 遠端 worker：需支援同帳號免密碼 SSH，並有一個 Python 3.9+ 直譯器執行純標準函式庫 helper。
+- 遠端 worker：需支援同帳號 SSH（key / agent 或設定檔密碼），並有一個 Python 3.9+ 直譯器執行純標準函式庫 helper。
   如果不在 PATH，設定 `hosts.remote-worker.ssh.python` 為該機器上的絕對路徑。
 - Local 模式使用服務主機的本機 filesystem；同一 domain 不代表可直接使用 local 模式。
 
@@ -71,7 +71,28 @@ OAuth token 存於記憶體；重啟或到期後重新登入。無需額外 sess
 如果原本免密碼 SSH 依賴 ssh-agent，背景服務也必須有可用的 `SSH_AUTH_SOCK`。
 程式固定使用目前有效 Linux 使用者，不受 SSH config 的 `User` 覆寫；
 port、IdentityFile 等其餘既有設定繼續沿用。
-未知 host key、認證失敗或沒有 remote Python 會回報失敗，不退回互動式密碼輸入。
+`ssh.password` 可直接填入該 Linux 帳號的密碼；省略時沿用 key / agent。
+密碼模式透過 OpenSSH askpass 自動提供密碼，無需 sshpass、額外 Python 套件或圖形介面。
+服務使用獨立 session，前景／背景執行皆不會等待終端機輸入密碼。
+密碼不放入命令參數、log 或 helper 檔案；僅傳入該 SSH 子程序的環境。
+askpass 暫存腳本放在 data_dir，該位置需允許執行腳本，結束或逾時後自動清除。
+
+若系統設定 `UserKnownHostsFile /dev/null`，使用：
+
+```yaml
+ssh:
+  user_mode: "current_user"
+  python: "python3"
+  password: "replace-with-linux-password"
+  host_key_checking: "accept-new"
+  timeout_seconds: 1800
+```
+
+`accept-new` 自動接受首次主機金鑰，保存於 `<server.data_dir>/ssh_known_hosts`，
+覆蓋系統的 `/dev/null` 設定；已保存金鑰變更時仍拒絕連線。需要 OpenSSH 7.6+。
+也可用 `ssh.known_hosts` 指定檔案，相對路徑以 config.yml 所在目錄為基準。
+未設定 host_key_checking 時預設 `strict`，維持既有驗證方式。
+更新設定後重啟服務；不需另外填寫 username，仍固定使用服務帳號。
 遠端 shell 啟動檔若向 stdout 印出 banner，會破壞 JSON protocol，應只在互動 shell 印出。
 
 ### 檢查與啟動
