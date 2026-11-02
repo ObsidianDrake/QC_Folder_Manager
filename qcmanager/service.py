@@ -1,4 +1,7 @@
+import json
 import logging
+import os
+import pwd
 import sqlite3
 import threading
 import time
@@ -7,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from .clients import APIError, TERMINAL, permitted
 from .storage import StorageError
+from .diagnostics import exception_details
 from .disks import DiskCache
 
 
@@ -71,10 +75,13 @@ class Manager:
             raise
 
     def _scan(self, pid):
+        stage = 'filesystem'
+        project = self.projects[pid]
         try:
             with self.locks[pid]:
                 project = self.projects[pid]
                 result = self.storage.request(project,'scan',metadata_only=True)
+                stage = 'inventory'
                 for row in result['records']:
                     row.update(drone_checked_at=None, drone_status='unknown', drone_error=None, build_created=None,
                                drone_url=self.drone.link(project,row['number']))
@@ -82,6 +89,7 @@ class Manager:
                 self.db.finish_scan(pid,result=result,state="checking")
                 snapshots, _ = self.db.inventory({pid})
                 self.queue_sizes([row for row in snapshots if row.get('bytes') is None and not row.get('error')])
+                stage = 'drone'
                 for row in snapshots:
                     fields = {'drone_checked_at': time.time()}
                     try:
@@ -92,9 +100,17 @@ class Manager:
                     self.db.patch_record(row, fields)
                 self.db.scan_ready(pid)
                 self.log.info('scan completed project=%s records=%d',pid,len(result['records']))
-        except Exception:
-            self.db.finish_scan(pid,error='掃描失敗；請檢查 filesystem、SSH、Python 與服務連線。')
-            self.log.warning('scan failed project=%s',pid)
+        except Exception as error:
+            message = error.ui_message if isinstance(error,StorageError) else '掃描發生非預期錯誤，請查看服務 log 的診斷資訊。'
+            host = self.config['hosts'][project['host']]
+            details = dict(project=pid, stage=stage, user=pwd.getpwuid(os.geteuid()).pw_name,
+                           host=host.get('hostname',project['host']),
+                           transport=host['transport'], root=project['run_folder'],
+                           python=host.get('ssh',{}).get('python'), exception=exception_details(error))
+            if isinstance(error,StorageError):
+                details['storage'] = error.details
+            self.log.warning('scan failed diagnostic=%s',json.dumps(details,ensure_ascii=True))
+            self.db.finish_scan(pid,error=message)
         finally:
             with self.guard:
                 self.pending_scans.discard(pid)
@@ -259,3 +275,4 @@ class Manager:
         self.pool.shutdown(wait=True)
         self.size_pool.shutdown(wait=True)
         self.disks.shutdown()
+

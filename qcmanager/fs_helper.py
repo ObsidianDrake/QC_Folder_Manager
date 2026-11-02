@@ -12,6 +12,12 @@ import sys
 FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
 
 
+def failure_details(error):
+    # Structured fields only: exception strings may contain private paths or input.
+    return {'error_type': type(error).__name__,
+            'error_errno': error.errno if isinstance(error, OSError) else None}
+
+
 def identity(info):
     return [info.st_dev, info.st_ino]
 
@@ -210,7 +216,8 @@ def execute(request):
     except (OSError, ValueError, RecursionError, KeyError, TypeError) as error:
         # Never return unfiltered OS paths, command text or credentials.
         return {'status': 'partial' if moved else 'failed', 'quarantine': quarantine if moved else None,
-                'error': 'Filesystem operation failed (%s)' % type(error).__name__}
+                'error': 'Filesystem operation failed (%s)' % type(error).__name__,
+                **failure_details(error)}
     finally:
         os.close(fd)
 
@@ -218,15 +225,18 @@ def execute(request):
 def main():
     try:
         if sys.version_info < (3, 9):
-            raise ValueError('Python 3.9 or newer required')
+            print(json.dumps({'error': 'Python 3.9 or newer required', 'error_code': 'python_version'}))
+            return
         raw = sys.stdin.buffer.read(65537)
         if len(raw) > 65536:
             raise ValueError('Request too large')
         result = execute(json.loads(raw))
         print(json.dumps(result))
-    except Exception:
-        print(json.dumps({'status': 'failed', 'error': 'Invalid request or inaccessible root'}))
+    except Exception as error:
+        print(json.dumps({'status': 'failed', 'error': 'Invalid request or inaccessible root',
+                          **failure_details(error)}))
 
 
 if __name__ == '__main__':
     main()
+

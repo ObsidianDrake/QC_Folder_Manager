@@ -29,10 +29,11 @@ def test_static_text_and_accessibility_labels_have_english_translations():
 
 def test_controlled_server_messages_have_english_translations():
     translations = catalog()
-    for filename in ('service.py', 'web.py'):
+    for filename in ('service.py', 'web.py', 'storage.py'):
         tree = ast.parse((ROOT/'qcmanager'/filename).read_text())
         for node in ast.walk(tree):
             if isinstance(node, ast.Constant) and isinstance(node.value, str) and re.search('[\u4e00-\u9fff]', node.value):
                 assert translations.get(node.value), node.value
     for original, translated in translations.items():
         assert set(re.findall(r'\{\w+\}', original)) == set(re.findall(r'\{\w+\}', translated))
+

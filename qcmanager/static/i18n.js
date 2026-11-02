@@ -139,7 +139,31 @@ const translations = {
   "更新中": "Refreshing",
   "資料已過期": "Stale data",
   "已更新": "Updated",
-  "尚無磁碟資訊": "No disk information yet"
+  "尚無磁碟資訊": "No disk information yet",
+  "儲存空間操作失敗，請查看服務 log 的診斷資訊。": "Storage operation failed. Check the service log diagnostics.",
+  "目錄或路徑不存在，請確認 host 與 run_folder。": "Directory or path not found. Check host and run_folder.",
+  "沒有目錄存取權限，請檢查服務帳號與路徑各層權限。": "Directory access denied. Check the service account and permissions on each path component.",
+  "檔案系統拒絕操作，請檢查服務帳號權限。": "Filesystem operation denied. Check service account permissions.",
+  "路徑包含非目錄或不允許的符號連結。": "The path contains a non-directory or a disallowed symbolic link.",
+  "路徑包含不允許的符號連結。": "The path contains a disallowed symbolic link.",
+  "檔案系統檢查失敗，請查看服務 log 的錯誤類型與 errno。": "Filesystem inspection failed. Check the exception type and errno in the service log.",
+  "SSH 主機金鑰驗證失敗，請檢查服務帳號的 known_hosts。": "SSH host key verification failed. Check the service account known_hosts.",
+  "SSH 主機金鑰已變更，請確認遠端主機後更新 known_hosts。": "SSH host key changed. Verify the remote host before updating known_hosts.",
+  "SSH 或遠端命令權限不足，請以服務帳號確認免密碼 SSH 與 Python 執行權限。": "SSH or remote command permission denied. Check passwordless SSH and Python execution permissions as the service account.",
+  "SSH 無法解析主機名稱，請檢查 hostname 與 DNS。": "SSH could not resolve the hostname. Check hostname and DNS.",
+  "SSH 連線被拒絕，請檢查遠端 SSH 服務與連接埠。": "SSH connection refused. Check the remote SSH service and port.",
+  "SSH 無法連到遠端主機，請檢查網路路由。": "SSH host unreachable. Check network routing.",
+  "SSH 連線逾時，請檢查遠端主機與網路。": "SSH connection timed out. Check the remote host and network.",
+  "遠端找不到 Python，請設定 ssh.python 的正確路徑。": "Remote Python was not found. Set the correct ssh.python path.",
+  "遠端命令不存在，請檢查 ssh.python 與 shell 啟動設定。": "Remote command not found. Check ssh.python and shell startup configuration.",
+  "遠端 Python 無法解析 helper，請確認 ssh.python 為 Python 3.9 以上。": "Remote Python cannot parse the helper. Verify ssh.python uses Python 3.9 or newer.",
+  "遠端 Python 載入失敗，請檢查 Python 安裝與環境。": "Remote Python import failed. Check the Python installation and environment.",
+  "SSH helper 執行失敗，請查看服務 log 的 exit_code 並確認遠端 Python 環境。": "SSH helper failed. Check exit_code in the service log and the remote Python environment.",
+  "SSH 命令執行逾時，請檢查遠端負載或調整 ssh.timeout_seconds。": "SSH command timed out. Check remote load or adjust ssh.timeout_seconds.",
+  "無法啟動 SSH，請檢查服務主機的 ssh 指令與執行權限。": "Cannot start SSH. Check the local ssh command and execution permissions.",
+  "SSH 回傳的資料不是有效 JSON，請檢查 shell 啟動訊息是否混入 stdout。": "SSH returned invalid JSON. Check whether shell startup messages are mixed into stdout.",
+  "遠端 Python 版本過舊，需要 Python 3.9 以上。": "Remote Python is too old. Python 3.9 or newer is required.",
+  "掃描發生非預期錯誤，請查看服務 log 的診斷資訊。": "Unexpected scan error. Check the service log diagnostics."
 };
 const languageKey='qc-folder-manager-language';
 let language='zh-Hant';
@@ -154,3 +178,4 @@ function applyLanguage(){document.documentElement.lang=language;document.getElem
 window.qcI18n={t:translate,get language(){return language;},setLanguage(value){if(!['zh-Hant','en'].includes(value))return;language=value;try{localStorage.setItem(languageKey,value);}catch(_){}applyLanguage();window.dispatchEvent(new Event('qc-language-change'));}};
 document.getElementById('language').addEventListener('change',event=>window.qcI18n.setLanguage(event.target.value));
 applyLanguage();
+

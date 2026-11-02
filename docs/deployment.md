@@ -188,3 +188,18 @@ SSH disk 查詢 timeout 最長 20 秒；local filesystem 若由 kernel 卡住，
 刪除成功或部分刪除後重新查詢，不以 run folder 估計容量相減。
 重啟後磁碟快取從空值開始重新查詢；不影響 SQLite 中的 run folder 容量與稽核。
 
+
+### 掃描失敗診斷
+
+UI 會依失敗原因顯示目錄不存在、存取權限不足、SSH 主機金鑰／連線問題、
+遠端 Python 不存在或版本不符、命令逾時、回傳 JSON 無效等訊息。
+在 `logging.directory/qc-folder-manager.log` 尋找 `scan failed diagnostic=`，
+其後的 JSON 包含 project、stage、服務 user、host、transport、root、python，
+以及可用的 SSH exit_code、timeout_seconds、錯誤類型與 errno_name。
+非預期程式錯誤會保留檔名、行號、函式名稱，方便定位。
+
+`ENOENT` 表示路徑不存在；`EACCES` 表示服務帳號無權存取；`python_missing`
+表示遠端找不到設定的 Python。若回傳 JSON 無效，確認 shell 啟動檔沒有向 stdout 印出訊息。
+SSH stderr 只用來分類已知錯誤，不原樣寫入 log；未知錯誤保留 exit_code。
+不記錄完整 SSH 命令、helper 原始碼、任意例外內容或回傳本文。
+診斷資訊仍使用既有 rolling log 容量限制。
