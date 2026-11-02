@@ -121,6 +121,10 @@ def main(binary):
             me=api('/api/me');csrf=me['csrf'];assert me['user']['login']=='vendor-smoke'
             for name in ('app.js','admin.js','style.css','i18n.js'):
                 with browser.open(public+'/assets/'+name,timeout=10) as res:assert len(res.read())>100
+            with browser.open(public+'/assets/login-knight.webp',timeout=10) as res:
+                assert res.headers.get_content_type() == 'image/webp'
+                image = res.read()
+                assert image[:4] == b'RIFF' and image[8:12] == b'WEBP'
             api('/api/scan',{'projects':['test']})
             inventory=eventually(lambda:(lambda x:x if x['scans'].get('test',{}).get('state')=='ready' else None)(api('/api/records')))
             assert len(inventory['records'])==2

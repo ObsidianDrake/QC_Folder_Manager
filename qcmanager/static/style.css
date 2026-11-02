@@ -27,3 +27,16 @@ header{height:82px}main{padding-top:24px}.logo{padding:10px;border-radius:12px;b
 @media(max-width:600px){header{height:auto}.page-head{flex-direction:column;padding:22px;gap:20px}.page-head>div:first-child{max-width:100%}.metrics{gap:10px}.metrics>div{padding:16px}.metrics strong{font-size:24px}.metrics .metric-icon{width:30px;height:30px;padding:6px;right:12px;top:13px}.metrics>div>span:first-child{padding-right:28px}.tabs button{padding:12px}.ui-icon{margin-right:6px}}
 .metrics>div:last-child{border:1px solid #e0e8e2}
 @media(max-width:800px){header{height:auto;min-height:76px}}
+
+/* Login illustration: keep the artwork separate from the translated sign-in copy. */
+.welcome{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:35px;align-items:center;padding:32px 0 38px;min-height:706px}
+.welcome-copy{padding:20px 0;min-width:0}
+.welcome .eyebrow{display:inline-block;padding:7px 11px;border:1px solid #d7e5db;border-radius:6px;background:#eef5f0;font-size:11px;letter-spacing:2px}
+.welcome h1{font-size:46px;line-height:1.45;margin:25px 0 18px;letter-spacing:-1.7px}
+.welcome-copy>p{max-width:410px;color:#62796e;font-size:15px;line-height:1.9}
+.welcome-copy>.button{padding:15px 25px;border-radius:9px;margin:18px 0 17px;box-shadow:0 6px 16px #12695016;font-weight:600;gap:12px}
+.welcome-copy>p.muted{font-size:12px;max-width:350px;line-height:1.9;color:#83928a;margin-top:8px}
+.knight-art{margin:0;display:flex;align-items:center;justify-content:center;min-width:0}
+.knight-art img{width:100%;max-width:650px;height:auto;display:block}
+@media(max-width:1050px){.welcome h1{font-size:36px}}
+@media(max-width:760px){.welcome{grid-template-columns:1fr;gap:24px;min-height:0;padding:0}.welcome-copy{padding:0}.welcome-copy>p.muted{max-width:100%}.knight-art{max-width:520px;margin:auto}}

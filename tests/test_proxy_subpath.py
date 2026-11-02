@@ -45,6 +45,12 @@ def test_proxy_login_assets_api_and_logout(configuration, monkeypatch, strip_pre
             assert (prefix+'/assets/i18n.js').encode() in page.data
         for path in ('/health', '/assets/app.js', '/assets/style.css', '/assets/i18n.js'):
             assert get(path).status_code == 200
+        assert (prefix+'/assets/login-knight.webp').encode() in page.data
+        image = get('/assets/login-knight.webp')
+        assert image.status_code == 200
+        assert image.content_type == 'image/webp'
+        assert image.data[:4] == b'RIFF' and image.data[8:12] == b'WEBP'
+        assert get('/assets/config.yml').status_code == 404
         assert get('/api/records').status_code == 401
         login = get('/auth/login', headers={
             'X-Forwarded-Host': 'untrusted.example.com',
