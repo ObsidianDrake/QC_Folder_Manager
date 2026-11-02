@@ -32,7 +32,12 @@ const stateNames={success:'成功',failure:'失敗',error:'錯誤',killed:'已�
 function node(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=t(text);if(cls)n.className=cls;return n;}
 function notice(message){notice.message=message;$('notice').textContent=t(message);$('notice').hidden=false;clearTimeout(notice.timer);notice.timer=setTimeout(()=>$('notice').hidden=true,8000);}
 function bytes(n){if(n===null||n===undefined)return t('待確認');let u=0;while(n>=1024&&u<4){n/=1024;u++;}return `${n.toFixed(u?1:0)} ${['B','KiB','MiB','GiB','TiB'][u]}`;}
-function date(t){return t?new Date(t*1000).toLocaleString(window.qcI18n.language==='en'?'en-GB':'zh-TW',{timeZone:'Asia/Taipei',hour12:false}):t('尚未掃描');}
+const dateFormatter=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'});
+function date(timestamp){
+  if(timestamp===null||timestamp===undefined)return t('尚未掃描');
+  const parts=Object.fromEntries(dateFormatter.formatToParts(new Date(timestamp*1000)).map(part=>[part.type,part.value]));
+  return `${parts.year}/${parts.month}/${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
+}
 function badge(state){const result=node('span',stateNames[state]||state,'badge '+(['success','deleted'].includes(state)?'good':['running','pending','blocked','waiting_on_dependencies','queued'].includes(state)?'warn':['failure','error','failed','partial','unknown'].includes(state)?'bad':''));const symbol=result.classList.contains('good')?'check':result.classList.contains('warn')?'play':result.classList.contains('bad')?'close':'list';result.prepend(icon(symbol));return result;}
 async function api(path,body){const options={credentials:'same-origin',headers:{'X-CSRF-Token':csrf}};if(body!==undefined){options.method='POST';options.headers['Content-Type']='application/json';options.body=JSON.stringify(body);}const r=await fetch(base+path,options);const data=await r.json();if(!r.ok){if(r.status===401)showLogin();if(r.status===403&&path.startsWith('/api/admin/')){isAdmin=false;window.dispatchEvent(new CustomEvent('qc-user',{detail:null}));}throw new Error(data.error||'操作失敗');}return data;}
 function showLogin(){isAdmin=false;window.dispatchEvent(new CustomEvent('qc-user',{detail:null}));loggedIn=false;$('workspace').hidden=true;$('welcome').hidden=false;$('account').replaceChildren();}
