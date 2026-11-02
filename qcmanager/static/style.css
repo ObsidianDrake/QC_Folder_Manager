@@ -40,3 +40,8 @@ header{height:82px}main{padding-top:24px}.logo{padding:10px;border-radius:12px;b
 .knight-art img{width:100%;max-width:650px;height:auto;display:block}
 @media(max-width:1050px){.welcome h1{font-size:36px}}
 @media(max-width:760px){.welcome{grid-template-columns:1fr;gap:24px;min-height:0;padding:0}.welcome-copy{padding:0}.welcome-copy>p.muted{max-width:100%}.knight-art{max-width:520px;margin:auto}}
+
+/* Membership guidance stays beside the project filters. */
+.project-help{display:flex;align-items:flex-start;gap:9px;margin:0 0 14px;padding:10px 13px;border:1px solid #dce7e0;border-radius:8px;background:#edf4f0;color:#526e5f;font-size:12px;line-height:1.7}
+.project-help>svg{flex:0 0 16px;width:16px;height:16px;margin-top:2px;fill:none;stroke:#638873;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.project-help strong{font-weight:650;color:#365b47;margin-right:4px}

@@ -21,6 +21,8 @@ const translations = {
   "執行紀錄": "Build records",
   "刪除紀錄": "Deletion history",
   "專案": "Project",
+  "找不到需要的專案？": "Can't find your project?",
+  "請聯絡您的 DRC 窗口，確認您的帳號已加入所屬組織的團隊。": "Contact your DRC representative to confirm that your account has been added to your organization's team.",
   "全部可存取專案": "All accessible projects",
   "搜尋": "Search",
   "Build number 或資料夾名稱": "Build number or folder name",
