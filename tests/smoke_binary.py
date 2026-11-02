@@ -125,6 +125,9 @@ def main(binary):
                 assert res.headers.get_content_type() == 'image/webp'
                 image = res.read()
                 assert image[:4] == b'RIFF' and image[8:12] == b'WEBP'
+            with browser.open(public+'/assets/favicon.svg',timeout=10) as res:
+                assert res.headers.get_content_type() == 'image/svg+xml'
+                assert '🔪' in res.read().decode('utf-8')
             api('/api/scan',{'projects':['test']})
             inventory=eventually(lambda:(lambda x:x if x['scans'].get('test',{}).get('state')=='ready' else None)(api('/api/records')))
             assert len(inventory['records'])==2

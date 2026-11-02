@@ -50,6 +50,11 @@ def test_proxy_login_assets_api_and_logout(configuration, monkeypatch, strip_pre
         assert image.status_code == 200
         assert image.content_type == 'image/webp'
         assert image.data[:4] == b'RIFF' and image.data[8:12] == b'WEBP'
+        assert (prefix+'/assets/favicon.svg').encode() in page.data
+        favicon = get('/assets/favicon.svg')
+        assert favicon.status_code == 200
+        assert favicon.mimetype == 'image/svg+xml'
+        assert '🔪' in favicon.data.decode('utf-8')
         assert get('/assets/config.yml').status_code == 404
         assert get('/api/records').status_code == 401
         login = get('/auth/login', headers={
