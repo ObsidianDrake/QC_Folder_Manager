@@ -15,7 +15,6 @@ def test_proxy_login_assets_api_and_logout(configuration, monkeypatch, strip_pre
     configuration['server'].update(public_url=origin+prefix, base_path=prefix)
     fake = FakeGitea()
     gitea = Gitea(configuration)
-    monkeypatch.setenv(configuration['gitea']['client_id_env'], 'test-client')
     monkeypatch.setattr(gitea, 'exchange', fake.exchange)
     monkeypatch.setattr(gitea, 'identity', fake.identity)
     app = create_app(configuration, gitea=gitea, drone=FakeDrone())
@@ -82,3 +81,4 @@ def test_prefix_boundary_is_not_stripped(configuration):
         assert app.test_client().get('/qc_folder_mgt-other/health').status_code == 404
     finally:
         app.extensions['manager'].shutdown()
+

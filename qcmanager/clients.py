@@ -1,5 +1,4 @@
 import json
-import os
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, quote, urlsplit
 from urllib.request import (Request, HTTPRedirectHandler, OpenerDirector, ProxyHandler,
@@ -61,7 +60,7 @@ class Gitea:
 
     def authorize_url(self, state, challenge):
         return self.base + '/login/oauth/authorize?' + urlencode({
-            'client_id': os.environ[self.config['client_id_env']],
+            'client_id': self.config['client_id'],
             'redirect_uri': self.callback, 'response_type': 'code',
             'scope': self.config['scopes'], 'state': state,
             'code_challenge': challenge, 'code_challenge_method': 'S256',
@@ -69,8 +68,8 @@ class Gitea:
 
     def exchange(self, code, verifier):
         result = http_json(self.base + '/login/oauth/access_token', form={
-            'client_id': os.environ[self.config['client_id_env']],
-            'client_secret': os.environ[self.config['client_secret_env']],
+            'client_id': self.config['client_id'],
+            'client_secret': self.config['client_secret'],
             'grant_type': 'authorization_code', 'redirect_uri': self.callback,
             'code': code, 'code_verifier': verifier,
         })
@@ -117,7 +116,7 @@ class Drone:
     def build(self, project, number):
         path = '/api/repos/%s/%s/builds/%d' % (
             quote(project['organization'], safe=''), quote(project['repository'], safe=''), number)
-        result = http_json(self.config['base_url'] + path, os.environ.get(self.config['token_env']))
+        result = http_json(self.config['base_url'] + path, self.config['token'])
         if (not isinstance(result, dict) or type(result.get('number')) is not int or result['number'] != number or
                 not isinstance(result.get('status'), str)):
             raise APIError('Drone response does not match build')
@@ -130,3 +129,4 @@ class Drone:
 
 def permitted(actor, project):
     return actor['is_admin'] or project['organization'].casefold() in {x.casefold() for x in actor['orgs']}
+

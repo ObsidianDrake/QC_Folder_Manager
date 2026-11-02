@@ -16,8 +16,8 @@ def configuration(tmp_path):
     cfg = {
         'schema_version':1,
         'server':{'public_url':'http://localhost','data_dir':str(tmp_path/'data'),'workers':2},
-        'gitea':{'base_url':'http://gitea.test/gitea'},
-        'drone':{'base_url':'http://drone.test/drone'},
+        'gitea':{'base_url':'http://gitea.test/gitea','client_id':'test-client','client_secret':'test-secret'},
+        'drone':{'base_url':'http://drone.test/drone','token':'test-drone-token'},
         'hosts':{'local':{'transport':'local','environment':'zone-a'}},
         'projects':[{'id':'example-project','organization':'ExampleVendor','repository':'Example_QC',
                      'host':'local','run_folder':str(root),'prefix':'qc'}],
@@ -77,3 +77,4 @@ def wait_for(fn, timeout=5):
             return result
         time.sleep(.01)
     raise AssertionError('Background operation did not finish')
+

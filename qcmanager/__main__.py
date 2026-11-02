@@ -29,7 +29,7 @@ def main(argv=None):
             return 0
         if args.preflight:
             failed = False
-            token = os.environ.get(config['drone']['token_env'])
+            token = config['drone']['token']
             try:
                 if not token:
                     raise ValueError('Missing token')
@@ -49,10 +49,6 @@ def main(argv=None):
                     print(project['id']+': FAILED (SSH/Python/root/permissions)')
                     failed = True
             return 1 if failed else 0
-        required = [config['gitea']['client_id_env'],config['gitea']['client_secret_env'],config['drone']['token_env']]
-        missing = [key for key in required if not os.environ.get(key)]
-        if missing:
-            raise ConfigError('Missing environment variables: '+', '.join(missing))
         data = Path(config['server']['data_dir'])
         data.mkdir(parents=True,exist_ok=True,mode=0o700)
         # Only one instance may recover jobs, rotate this log, or modify this inventory.
@@ -90,3 +86,4 @@ def main(argv=None):
 
 if __name__ == '__main__':
     sys.exit(main())
+

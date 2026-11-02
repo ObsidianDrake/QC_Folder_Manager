@@ -154,12 +154,10 @@ def load_config(path):
             if os.path.commonpath([local_root, logs['directory']]) == local_root:
                 raise ConfigError('Logs must not live under a managed root')
         roots.append((target, root))
-    config["gitea"].setdefault("client_id_env", "QC_FOLDER_GITEA_CLIENT_ID")
-    config["gitea"].setdefault("client_secret_env", "QC_FOLDER_GITEA_CLIENT_SECRET")
     config["gitea"].setdefault("scopes", "read:user read:organization")
-    config["drone"].setdefault("token_env", "QC_FOLDER_DRONE_TOKEN")
-    for section, keys in (("gitea", ("client_id_env", "client_secret_env")), ("drone", ("token_env",))):
+    for section, keys in (("gitea", ("client_id", "client_secret")), ("drone", ("token",))):
         for key in keys:
-            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", config[section][key]):
-                raise ConfigError("Invalid credential environment variable name")
+            value = config[section].get(key)
+            if not isinstance(value, str) or not value.strip() or "\r" in value or "\n" in value:
+                raise ConfigError("%s.%s must be a non-empty, single-line string" % (section, key))
     return config

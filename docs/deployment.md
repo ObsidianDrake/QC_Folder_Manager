@@ -49,15 +49,19 @@ Redirect URI: <server.public_url>/auth/callback
 及本人組織清單（完整分頁）；公司 Gitea 的版本與 scope 行為在 UAT 確認。
 不要共用 Drone 的 callback 或直接把 Gitea token 當成 Drone token。
 
-環境變數使用現有 tcsh/csh 啟動習慣：
+在 `config.yml` 的對應區段直接填入實際值（保留原有 `base_url` 等設定）：
 
-```tcsh
-setenv QC_FOLDER_GITEA_CLIENT_ID "部署時填入"
-setenv QC_FOLDER_GITEA_CLIENT_SECRET "部署時填入"
-setenv QC_FOLDER_DRONE_TOKEN "部署時填入"
+```yaml
+gitea:
+  client_id: "replace-with-gitea-client-id"
+  client_secret: "replace-with-gitea-client-secret"
+drone:
+  token: "replace-with-drone-token"
 ```
 
-這些值只保存在服務帳號可讀的部署設定中，不提交 repository。
+不需要 `setenv` 或 `export`。欄位名稱不再使用 `_env` 後綴。
+設定檔只供服務帳號讀取（例如 `chmod 600 config.yml`），不可提交 repository。
+缺少或填錯憑證欄位時，錯誤訊息會指出欄位名稱，不輸出憑證值。
 OAuth token 存於記憶體；重啟或到期後重新登入。無需額外 session secret，cookie 使用不可猜測的 opaque ID。
 管理員資格只認 Gitea 網站 `is_admin`，不另維護 admin 帳號名單。
 
@@ -183,3 +187,4 @@ SSH disk 查詢 timeout 最長 20 秒；local filesystem 若由 kernel 卡住，
 查詢失敗保留舊值並標示失敗，超過 90 秒或刪除後失效的數值標示過期。
 刪除成功或部分刪除後重新查詢，不以 run folder 估計容量相減。
 重啟後磁碟快取從空值開始重新查詢；不影響 SQLite 中的 run folder 容量與稽核。
+

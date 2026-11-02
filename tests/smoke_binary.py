@@ -46,6 +46,8 @@ def main(binary):
                 parsed=urlsplit(self.path)
                 if parsed.path=='/gitea/login/oauth/authorize':
                     query=parse_qs(parsed.query)
+                    if query.get('client_id')!=['mock-client']:
+                        return self.send_json({},401)
                     Provider.challenge=query['code_challenge'][0]
                     self.send_response(302)
                     self.send_header('Location',public+'/auth/callback?'+urlencode({'code':'smoke-code','state':query['state'][0]}))
@@ -71,6 +73,8 @@ def main(binary):
                 challenge=base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b'=').decode()
                 if self.path!='/gitea/login/oauth/access_token' or challenge!=Provider.challenge:
                     return self.send_json({},400)
+                if form.get('client_id')!=['mock-client'] or form.get('client_secret')!=['mock-client-secret']:
+                    return self.send_json({},401)
                 self.send_json({'access_token':'mock-user-token'})
         upstream=ThreadingHTTPServer(('127.0.0.1',0),Provider)
         threading.Thread(target=upstream.serve_forever,daemon=True).start()
@@ -83,14 +87,14 @@ def main(binary):
         script.write_text('#!'+sys.executable+'\nimport os,shlex,sys\ncommand=shlex.split(sys.argv[-1])\nos.execvp(command[0],command)\n')
         script.chmod(0o700)
         cfg={'schema_version':1,'server':{'listen':'127.0.0.1','port':app_port,'public_url':public,'data_dir':str(root/'state')},
-             'gitea':{'base_url':origin+'/gitea'},'drone':{'base_url':origin+'/drone'},
+             'gitea':{'base_url':origin+'/gitea','client_id':'mock-client','client_secret':'mock-client-secret'},
+             'drone':{'base_url':origin+'/drone','token':'mock-drone-token'},
              'hosts':{'test-ssh':{'transport':'ssh','environment':'zone-b','hostname':'smoke-only',
                                 'ssh':{'python':sys.executable,'user_mode':'current_user','timeout_seconds':30}}},
              'projects':[{'id':'test','organization':'ExampleVendor','repository':'Example_QC','host':'test-ssh',
                           'run_folder':str(runs),'prefix':'qc'}]}
         config=root/'config.yml';config.write_text(yaml.safe_dump(cfg))
-        env=dict(os.environ,QC_FOLDER_GITEA_CLIENT_ID='mock-client',QC_FOLDER_GITEA_CLIENT_SECRET='mock-client-secret',
-                 QC_FOLDER_DRONE_TOKEN='mock-drone-token',PATH=str(shim)+os.pathsep+os.environ['PATH'])
+        env=dict(os.environ,PATH=str(shim)+os.pathsep+os.environ['PATH'])
         command=([sys.executable,'main.py'] if binary=='--source' else [str(Path(binary).resolve())])
         proc=subprocess.Popen(command+['--config',str(config)],env=env,
                               stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
@@ -149,3 +153,4 @@ def main(binary):
 
 
 if __name__=='__main__':main(sys.argv[1])
+

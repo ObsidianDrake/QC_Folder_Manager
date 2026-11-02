@@ -98,15 +98,15 @@ cp config.example.yml config.yml
 - `logging.directory`：一般 log 存放位置，預設範例為 `./data/logs`。
 
 使用獨立的 Gitea OAuth application，callback 為 `<server.public_url>/auth/callback`。
-服務端環境變數（不可提交 Git）：
+在 `config.yml` 直接填入憑證值，不需要設定環境變數；含真實憑證的設定檔不可提交 Git。
 
-| 環境變數 | 用途 |
+| 設定欄位 | 用途 |
 | --- | --- |
-| `QC_FOLDER_GITEA_CLIENT_ID` | 此服務的 Gitea OAuth client ID |
-| `QC_FOLDER_GITEA_CLIENT_SECRET` | 此服務的 Gitea OAuth client secret |
-| `QC_FOLDER_DRONE_TOKEN` | 能查詢全部納管 repositories 的 Drone 服務 token |
+| `gitea.client_id` | 此服務的 Gitea OAuth client ID |
+| `gitea.client_secret` | 此服務的 Gitea OAuth client secret |
+| `drone.token` | 能查詢全部納管 repositories 的 Drone 服務 token |
 
-Vendor 不需輸入 Drone token 或 Linux 帳密。登入使用 OAuth state + PKCE，cookie 僅放隨機 session ID；token 存在服務記憶體，不放進 cookie、SQLite 或 log。
+Vendor 不需輸入 Drone token 或 Linux 帳密。登入使用 OAuth state + PKCE，cookie 僅放隨機 session ID；登入取得的 OAuth token 存在服務記憶體，不放進 cookie、SQLite 或 log。
 登出、服務重啟、session 到期或上游 token 失效後重新登入；第一版不持久化／自動刷新 OAuth token。
 POST API 使用 CSRF token；所有資料查詢由後端依 Gitea 身分過濾。
 
@@ -154,3 +154,4 @@ make test
 
 [Drone 整合依據](docs/drone-integration.md)記錄 API 路由與狀態約定。
 正式導入仍需在 UAT 驗證實際 OAuth、遠端 Python／SSH 權限、測試 build 對應與 RHEL binary。
+

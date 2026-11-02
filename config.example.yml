@@ -18,14 +18,14 @@ logging:
 
 gitea:
   base_url: "https://git.example.com/gitea"
-  client_id_env: "QC_FOLDER_GITEA_CLIENT_ID"
-  client_secret_env: "QC_FOLDER_GITEA_CLIENT_SECRET"
+  client_id: "replace-with-gitea-client-id"
+  client_secret: "replace-with-gitea-client-secret"
   scopes: "read:user read:organization"
   # Gitea 網站管理員以登入後的 is_admin 判定，不設定帳號白名單。
 
 drone:
   base_url: "https://ci.example.com/drone"
-  token_env: "QC_FOLDER_DRONE_TOKEN"  # 管理員在伺服器設定；Vendor 不需提供。
+  token: "replace-with-drone-token"  # 管理員在伺服器設定；Vendor 不需提供。
 
 hosts:
   local:
@@ -51,3 +51,4 @@ projects:
     run_folder: "/srv/qc/example-project"
     prefix: "qc"
     # 虛構案例：此根目錄下的 qc_1234 對應 Drone build #1234。
+
