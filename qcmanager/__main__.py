@@ -15,7 +15,7 @@ from .storage import Storage
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='QC Folder Manager — Gitea / Drone / local and SSH storage')
+    parser = argparse.ArgumentParser(description='QC Folder Manager - Gitea / Drone / local and SSH storage')
     parser.add_argument('--config',required=True,help='Path to config.yml')
     parser.add_argument('--check-config',action='store_true',help='Validate configuration without network or filesystem mutations')
     parser.add_argument('--preflight',action='store_true',help='Read-only checks for Drone and all configured roots')
