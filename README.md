@@ -53,7 +53,7 @@
 
 ## 開發與建置
 
-與 LSF Dashboard 相同，直接 `make` 即可自動建立 `.venv`、安裝固定版本依賴並產生 binary，不需先 activate venv：
+與 LSF Dashboard 相同，直接 `make` 即可自動建立 `.venv`、安裝應用程式依賴及 PyInstaller 並產生 binary，不需先 activate venv：
 
 ```sh
 make
@@ -62,7 +62,9 @@ make test
 make help
 ```
 
-若 Python 不在 PATH，首次執行 `make PYTHON=/path/to/python3`。後續自動使用 `.venv/bin/python`；既有 venv 不會因 PYTHON 變數改變而被重建。依賴安裝成功後會快取，requirements 有變更才重新安裝。`make clean` 僅清除 `build/` 與 `dist/`，保留 venv、設定檔與資料。
+若 Python 不在 PATH，可執行 `make PYTHON=/path/to/python3`。
+Makefile 自動建立並使用 `.venv`，安裝專案依賴及 PyInstaller；PyInstaller 不固定版本。
+`make clean` 僅清除 `build/` 與 `dist/`，保留 venv、設定檔與資料。
 
 產物：`dist/qc-folder-manager`。UI 資產與 SSH helper 會一併打包；設定檔與 SQLite 不放入 binary。
 

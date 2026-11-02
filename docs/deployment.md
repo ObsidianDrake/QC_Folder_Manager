@@ -17,24 +17,13 @@ make release
 # Python 不在 PATH 時：make release PYTHON=/path/to/python3
 ```
 
-Makefile 自動建立 `.venv` 並安裝固定版本依賴；不需 activate，也不需每次指定 venv Python。可用 `make help` 查看指令。
+Makefile 自動建立 `.venv` 並安裝應用程式與建置依賴；不需 activate，也不需每次指定 venv Python。可用 `make help` 查看指令。
 建置 Python 必須為 3.9.10；venv 需能取得相容的 Python shared library。
 產物 `dist/qc-folder-manager` 與 SHA256 可複製到服務目錄；執行主機不需 pip 套件。
 `make` 或 `make build` 可在其他 Linux 做開發驗證，不能據此宣稱 RHEL 相容。
 
-### 建置時的 Python shared library 相容性
-
-建置依賴固定為 PyInstaller 6.22.3，與已成功建置的參考專案版本對齊。
-6.16.0 會因 `Py_ENABLE_SHARED=0` 拒絕部分另行提供 shared library 的安裝；
-6.22.3 會在該 Python 的 `sys.base_prefix` 與其 `lib/` 目錄尋找對應 shared library。
-因此 `INSTSONAME` 回報 `libpython3.9.a` 不代表整個安裝不存在 `.so`。
-仍需真正的 shared library；不會把 `.a` 當成可打包替代品。
-`make` 在打包前會列印實際 Python、PyInstaller 版本與直譯器路徑。
-
-更新程式後直接執行 `make`；requirements 的變更會自動觸發 venv 依賴更新，
-不需要刪除 venv、重新編譯 Python 或修改 production config。
-LSF Dashboard 未固定 PyInstaller 版本，因此僅比較兩邊 Makefile 並不能確認
-公司實際安裝的版本相同。
+PyInstaller 由 Makefile 直接執行 `pip install pyinstaller` 安裝，不在 requirements 固定版本。
+應用程式與測試依賴分別由 `requirements.txt`、`requirements-dev.txt` 管理。
 
 ## 設定
 

@@ -2,7 +2,6 @@ PYTHON ?= python3
 VENV ?= .venv
 VENV_PYTHON := $(VENV)/bin/python
 CONFIG ?= config.example.yml
-DEPS_STAMP := $(VENV)/.qc-dependencies
 
 .DEFAULT_GOAL := all
 .PHONY: all help venv backend executable build test check-config smoke release clean
@@ -26,12 +25,10 @@ venv:
 	fi
 	@"$(VENV_PYTHON)" -c 'import sys; sys.exit("Existing venv requires Python 3.9 or newer") if sys.version_info < (3, 9) else None'
 
-$(DEPS_STAMP): requirements.txt requirements-build.txt requirements-dev.txt | venv
-	@echo 'Installing pinned application, build and test dependencies...'
-	"$(VENV_PYTHON)" -m pip install -r requirements-build.txt -r requirements-dev.txt
-	@touch "$@"
-
-backend: $(DEPS_STAMP)
+backend: venv
+	@echo 'Installing project dependencies and PyInstaller...'
+	"$(VENV_PYTHON)" -m pip install -r requirements-dev.txt
+	"$(VENV_PYTHON)" -m pip install pyinstaller
 
 executable: backend
 	@echo 'Building QC Folder Manager (UI and SSH helper included)...'
