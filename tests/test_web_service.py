@@ -38,6 +38,8 @@ def test_delete_persists_actor_and_audit_after_folder_removed(web,configuration)
     op=finished(app)
     assert op['state']=='deleted' and not case.exists()
     assert op['actor']['login']=='vendor-one' and op['actor']['id']==1
+    assert client.get('/api/audit').status_code==403
+    gitea.actor['is_admin']=True
     audit=client.get('/api/audit').json['events']
     assert {e['event'] for e in audit}>={'requested','running','deleted'}
     assert all('secret-token' not in json.dumps(e) for e in audit)
@@ -60,7 +62,7 @@ def test_cross_org_cannot_list_delete_or_read_audit(web,configuration):
     gitea.actor['orgs']=['OtherVendor']
     assert client.get('/api/records').json['records']==[]
     assert client.post('/api/delete',json={'records':[rid],'confirm':True},headers=headers).status_code==404
-    assert client.get('/api/audit').json['events']==[]
+    assert client.get('/api/audit').status_code==403
     assert case.exists()
 
 
@@ -137,3 +139,4 @@ def test_oauth_state_single_use_and_cookie_security(web):
     assert 'private-oauth-token' not in callback.headers['Set-Cookie']
     assert client.get('/api/me').json['user']['login']=='vendor-one'
     assert client.get('/auth/callback',query_string={'code':'valid','state':state}).status_code==400
+

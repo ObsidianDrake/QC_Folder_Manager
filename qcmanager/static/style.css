@@ -47,3 +47,5 @@ header{height:82px}main{padding-top:24px}.logo{padding:10px;border-radius:12px;b
 .project-help strong{font-weight:650;color:#365b47;margin-right:4px}
 
 @media(max-width:600px){.page-head{grid-template-columns:1fr}.page-head>.button{justify-self:start}}
+
+.history-pages{display:flex;align-items:center;justify-content:flex-end;gap:16px;margin:16px 0}.history-pages span{color:#60756a}#operations td:first-child{white-space:nowrap}

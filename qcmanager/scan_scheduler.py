@@ -6,6 +6,7 @@ import time
 class ScanScheduler:
     def __init__(self, manager, settings, interval):
         self.manager, self.settings, self.interval = manager, settings, interval
+        self.last_purge = None
         self.stop_event = threading.Event()
         self.thread = threading.Thread(target=self._run, name='qc-scan-scheduler', daemon=True)
 
@@ -19,6 +20,9 @@ class ScanScheduler:
     def poll(self):
         # Share the API's settings lock: a project cannot be edited or removed
         # between checking its definition and reserving its scan work.
+        if self.last_purge is None or time.monotonic() - self.last_purge >= 3600:
+            self.manager.db.purge_history()
+            self.last_purge = time.monotonic()
         with self.settings.lock:
             if self.settings.broken or self.stop_event.is_set():
                 return

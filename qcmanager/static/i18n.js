@@ -1,5 +1,9 @@
 'use strict';
 const translations = {
+  "保留最近 30 天的已結束紀錄；待處理工作不會自動清除。": "Completed history is retained for 30 days. Unresolved work is kept.",
+  "上一頁": "Previous",
+  "下一頁": "Next",
+  "第 {page} 頁": "Page {page}",
   "此專案的背景工作仍在執行，請等待完成後再儲存。": "This project has active background jobs. Retry after they finish.",
   "清理處理中": "Deletion in progress",
   "掃描失敗，請聯絡管理員並提供專案名稱。": "Scan failed. Contact an administrator and provide the project name.",

@@ -107,9 +107,9 @@ def test_immutable_ownership_and_retired_history(web,configuration):
     assert client.get('/api/operations').json['operations'][0]['id']==oid
     web[1].actor.update(is_admin=False,orgs=['ExampleVendor'])
     assert client.get('/api/records').json['projects']==[]
-    assert client.get('/api/audit').json['events']
+    assert client.get('/api/audit').status_code==403
     web[1].actor['orgs']=['OtherVendor']
-    assert client.get('/api/audit').json['events']==[]
+    assert client.get('/api/audit').status_code==403
 
 
 @pytest.mark.parametrize('busy_kind',['scan','size','disk','work'])

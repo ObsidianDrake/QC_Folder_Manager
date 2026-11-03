@@ -148,6 +148,7 @@ def main(binary):
             assert {o['state'] for o in ops}=={'deleted','rejected'}
             assert not (runs/'qc_1234').exists() and (runs/'qc_1235'/'output').exists()
             assert all(o['actor']['login']=='vendor-smoke' for o in ops)
+            Provider.is_admin=True
             audit=api('/api/audit')['events'];assert len(audit)>=5
             assert 'mock-user-token' not in json.dumps(audit)
             log=(root/'state'/'logs'/'qc-folder-manager.log').read_text()

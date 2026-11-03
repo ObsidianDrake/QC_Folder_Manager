@@ -33,6 +33,7 @@ class Database:
                     message TEXT, drone_status TEXT);
                 CREATE UNIQUE INDEX IF NOT EXISTS active_record ON operations(record)
                     WHERE state IN ('queued','running','unknown','partial');
+                CREATE INDEX IF NOT EXISTS operation_history ON operations(project, created DESC, id DESC);
                 CREATE TABLE IF NOT EXISTS audit (
                     seq INTEGER PRIMARY KEY AUTOINCREMENT, operation TEXT, project TEXT,
                     actor TEXT NOT NULL, event TEXT NOT NULL, at REAL NOT NULL, detail TEXT NOT NULL);
@@ -154,13 +155,13 @@ class Database:
             if state == 'deleted':
                 db.execute('DELETE FROM records WHERE id=?',(row['record'],))
 
-    def operations(self, allowed, limit=200):
+    def operations(self, allowed, limit=200, offset=0):
         if not allowed:
             return []
         marks = ','.join('?' for _ in allowed)
         with self.connect() as db:
-            rows = db.execute('SELECT * FROM operations WHERE project IN (%s) ORDER BY created DESC LIMIT ?' % marks,
-                              tuple(allowed)+(limit,)).fetchall()
+            rows = db.execute('SELECT * FROM operations WHERE project IN (%s) ORDER BY created DESC, id DESC LIMIT ? OFFSET ?' % marks,
+                              tuple(allowed)+(limit,offset)).fetchall()
         return [dict(r,actor=json.loads(r['actor']),target=json.loads(r['target'])) for r in rows]
 
     def audit(self, allowed, before=None):
@@ -172,3 +173,9 @@ class Database:
                               tuple(allowed)+(before or 2**63-1,)).fetchall()
         return [dict(r,actor=json.loads(r['actor']),detail=json.loads(r['detail'])) for r in rows]
 
+
+    def purge_history(self, now=None):
+        cutoff = (time.time() if now is None else now) - 30 * 86400
+        with self.connect() as db:
+            db.execute("DELETE FROM audit WHERE at < ? AND NOT EXISTS (SELECT 1 FROM operations o WHERE o.id=audit.operation AND o.state IN ('queued','running','unknown','partial'))", (cutoff,))
+            db.execute("DELETE FROM operations WHERE updated < ? AND state NOT IN ('queued','running','unknown','partial')", (cutoff,))

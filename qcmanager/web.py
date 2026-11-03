@@ -246,11 +246,18 @@ def create_app(config, db=None, gitea=None, drone=None, storage=None):
     @app.get('/api/operations')
     @require_login
     def operations():
-        return jsonify(operations=presentation.operations(db.operations(settings.history_allowed(g.actor))))
+        page = request.args.get('page', '1')
+        if not page.isdigit() or not 1 <= int(page) <= 1000000:
+            raise RequestError('Invalid history page')
+        page = int(page)
+        rows = db.operations(settings.history_allowed(g.actor), limit=51, offset=(page-1)*50)
+        return jsonify(operations=presentation.operations(rows[:50]), page=page, has_more=len(rows)>50)
 
     @app.get('/api/audit')
     @require_login
     def audit():
+        if not g.actor.get('is_admin'):
+            raise RequestError('此功能僅限 Gitea 管理員。',403)
         before = request.args.get('before',type=int)
         if before is not None and not 1 <= before < 2**63:
             raise RequestError('Invalid audit cursor')

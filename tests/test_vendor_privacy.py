@@ -40,7 +40,7 @@ def test_browser_endpoints_never_return_internal_storage_or_historical_secrets(w
             for v in value:inspect(v)
     for endpoint in ('me','records','disks','operations','audit'):
         response=client.get('/api/'+endpoint)
-        assert response.status_code==200
+        assert response.status_code==(403 if endpoint=='audit' and not admin else 200)
         assert private not in response.get_data(as_text=True)
         assert 'private-org-marker' not in response.get_data(as_text=True)
         responses[endpoint]=response.json
