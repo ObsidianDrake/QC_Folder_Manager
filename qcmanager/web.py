@@ -144,10 +144,10 @@ def create_app(config, db=None, gitea=None, drone=None, storage=None):
 
     @app.get('/assets/<name>')
     def asset(name):
-        if name not in ('app.js','admin.js','style.css','i18n.js','login-knight.webp','favicon.svg'):
+        if name not in ('app.js','admin.js','style.css','i18n.js','login-knight.webp','home-knight.webp','favicon.svg'):
             raise RequestError('Not found',404)
         response = send_from_directory(str(static),name)
-        if name == 'login-knight.webp':
+        if name in ('login-knight.webp','home-knight.webp'):
             response.headers['Content-Type'] = 'image/webp'
         elif name == 'favicon.svg':
             response.headers['Content-Type'] = 'image/svg+xml; charset=utf-8'

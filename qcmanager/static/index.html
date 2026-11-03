@@ -18,20 +18,7 @@
     <div class="knight-art" aria-hidden="true"><img src="__BASE__/assets/login-knight.webp" width="1254" height="1254" alt="" decoding="async"></div>
   </section>
   <section id="workspace" hidden>
-    <div class="page-head"><div><span class="eyebrow">WORKSPACE OVERVIEW</span><h1>QC 執行紀錄</h1><p class="muted">追蹤每筆 build，整理不再需要的執行資料。</p></div><div class="hero-art" aria-hidden="true"><svg viewBox="0 0 300 160" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-<ellipse cx="162" cy="139" rx="111" ry="12" fill="#dcebe3"/>
-<path d="M30 51h27m-14-14v28M259 107h17m-8-8v17" stroke="#a5c9b8" stroke-width="2" stroke-linecap="round"/>
-<circle cx="254" cy="35" r="5" stroke="#9fbdaf" stroke-width="2"/>
-<rect x="73" y="47" width="148" height="83" rx="16" fill="#d1e4d8" stroke="#8caf9c"/>
-<rect x="73" y="32" width="148" height="83" rx="16" fill="#e7f0ea" stroke="#8caf9c"/>
-<rect x="73" y="19" width="148" height="82" rx="16" fill="#fcfdfb" stroke="#6f9d86" stroke-width="1.5"/>
-<path d="M94 78h103" stroke="#d2e3d8" stroke-width="2"/><circle cx="98" cy="90" r="2.5" fill="#61a383"/><circle cx="108" cy="90" r="2.5" fill="#a6c7b4"/>
-<path d="M108 38h28l9 9h40a7 7 0 0 1 7 7v14a7 7 0 0 1-7 7h-77a7 7 0 0 1-7-7V45a7 7 0 0 1 7-7Z" fill="#c4ddce" stroke="#5b9275" stroke-width="1.5"/>
-<path d="M102 55h91l-5 20h-83Z" fill="#ddecdf" stroke="#5b9275" stroke-width="1.5" stroke-linejoin="round"/>
-<rect x="193" y="86" width="51" height="51" rx="16" fill="#176b50" stroke="#f5faf6" stroke-width="5"/>
-<path d="m208 111 7 7 13-15" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M48 103c0-11 9-20 20-20" stroke="#86ad98" stroke-width="2" stroke-dasharray="3 5"/>
-</svg></div><button id="scan" data-icon="refresh" class="button primary">重新掃描</button></div>
+    <div class="page-head"><div><span class="eyebrow">WORKSPACE OVERVIEW</span><h1>QC 執行紀錄</h1><p class="muted">追蹤每筆 build，整理不再需要的執行資料。</p></div><div class="hero-art" aria-hidden="true"><img src="__BASE__/assets/home-knight.webp" width="1024" height="427" alt="" decoding="async"></div><button id="scan" data-icon="refresh" class="button primary">重新掃描</button></div>
     <div class="metrics"><div><span>執行資料</span><strong id="total">—</strong></div><div><span>估計佔用空間</span><strong id="size">—</strong></div><div><span>可清理紀錄</span><strong id="eligible">—</strong></div><div><span>受保護／待確認</span><strong id="protected">—</strong></div></div>
     <section class="disk-section" aria-label="磁碟空間"><div class="disk-heading"><div><h2 data-icon="disk">磁碟空間</h2><p class="muted">整個 filesystem 的共用空間，非專案配額。</p></div><button id="refresh-disks" data-icon="refresh" class="button">更新磁碟資訊</button></div><div id="disks" class="disk-grid"></div></section>
     <nav class="tabs" aria-label="功能分頁"><button id="records-tab" data-icon="list" class="active">執行紀錄</button><button id="audit-tab" data-icon="history">刪除紀錄</button><button id="admin-tab" data-icon="shield" hidden>專案管理</button></nav>
