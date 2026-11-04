@@ -37,3 +37,11 @@ def test_controlled_server_messages_have_english_translations():
     for original, translated in translations.items():
         assert set(re.findall(r'\{\w+\}', original)) == set(re.findall(r'\{\w+\}', translated))
 
+
+def test_hindi_catalog_is_complete_and_preserves_placeholders():
+    source = (ROOT/'qcmanager/static/i18n.js').read_text()
+    hindi = json.JSONDecoder().raw_decode(source.split('const hindiTranslations = ', 1)[1])[0]
+    assert hindi.keys() == catalog().keys()
+    for original, translated in hindi.items():
+        assert re.search('[\u0900-\u097f]', translated), original
+        assert sorted(re.findall(r'\{\w+\}', original)) == sorted(re.findall(r'\{\w+\}', translated)), original
