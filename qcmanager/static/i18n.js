@@ -205,7 +205,17 @@ const translations = {
   "專案設定已儲存並生效，系統將自動重新掃描。": "Project settings saved and applied. An automatic rescan will follow."
 };
 const languageKey='qc-folder-manager-language';
-let language='zh-Hant';
+// Use the first supported browser preference; only explicit choices are persisted.
+function browserLanguage(){
+  const preferences=navigator.languages?.length?navigator.languages:[navigator.language];
+  for(const preference of preferences){
+    const primary=String(preference||'').toLowerCase().split('-')[0];
+    if(primary==='zh')return 'zh-Hant';
+    if(primary==='en')return 'en';
+  }
+  return 'en';
+}
+let language=browserLanguage();
 try { const saved=localStorage.getItem(languageKey); if(['zh-Hant','en'].includes(saved))language=saved; } catch (_) {}
 function translate(text,values={}) {let value=language==='en'?(translations[text]??text):text;return String(value??'').replace(/\{(\w+)\}/g,(match,key)=>values[key]??match);}
 // Capture only the original static text. Record paths and user data are never translated.

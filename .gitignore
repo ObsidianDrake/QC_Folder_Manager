@@ -23,3 +23,9 @@ __pycache__/
 *.sqlite3-wal
 *.log
 *.log.*
+
+# Test coverage reports
+.coverage
+.coverage.*
+/htmlcov/
+/coverage.xml

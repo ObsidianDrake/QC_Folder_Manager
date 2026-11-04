@@ -8,7 +8,7 @@
 
 ## 介面語言
 
-頁首提供繁體中文與 English 選單，登入前後均可切換。預設繁體中文；語言偏好儲存在瀏覽器 localStorage，無法使用儲存空間時仍可於當次頁面切換。時間維持 Asia/Taipei，中英文皆顯示 YYYY/MM/DD HH:mm:ss。專案名稱、帳號與檔案路徑不翻譯。
+頁首提供繁體中文與 English 選單，登入前後均可切換。優先使用先前手動選擇的語言；首次開啟依瀏覽器偏好清單，選用第一個支援的中文或英文（所有中文變體顯示繁體中文），皆不支援時使用英文。手動選擇儲存在瀏覽器 localStorage；自動偵測結果不寫入，無法使用儲存空間時仍可於當次頁面切換。時間維持 Asia/Taipei，中英文皆顯示 YYYY/MM/DD HH:mm:ss。專案名稱、帳號與檔案路徑不翻譯。
 
 ## 使用流程
 
@@ -194,3 +194,13 @@ Gitea admin 可使用「專案管理」新增、編輯與移除專案；儲存�
 刪除工作以表格每頁顯示 50 筆，提供上一頁／下一頁；一般使用者依組織權限查閱。詳細稽核事件僅 admin 可見，API 對一般使用者回覆 403。瀏覽舊頁時不自動刷新，按更新紀錄回到第一頁。
 
 後端啟動時及每小時清理超過 30 天的已結束刪除工作（依最後更新時間）與稽核事件（依事件時間）。queued、running、unknown、partial 工作及其稽核保留，避免遺失待處理線索。此清理只移除歷史資料，不刪除 run folder、Drone history 或專案設定稽核。SQLite 可重用釋出的頁面，不保證資料庫檔案立即縮小。
+
+## 測試覆蓋率報告
+
+執行 `make test`，或先 `python -m pip install -r requirements-dev.txt` 再執行 `python -m pytest`，皆會自動產生：
+
+- `htmlcov/index.html`：可用瀏覽器開啟的 HTML 報告。
+- `coverage.xml`：供 CI／品質分析工具讀取的 XML 報告。
+- 終端機覆蓋率摘要與未覆蓋行號。
+
+統計範圍為 `qcmanager` Python 程式碼，不包含前端 JavaScript，也不包含獨立執行的 binary smoke test。每次測試重新產生報告，報告與 `.coverage` 資料已加入 Git 忽略清單。
