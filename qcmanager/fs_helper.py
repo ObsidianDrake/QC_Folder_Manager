@@ -59,23 +59,33 @@ def child_dir(fd, name):
         raise
 
 
-def disk_size(fd, seen=None):
+def disk_size(fd, seen=None, tolerate_missing=False):
     if seen is None:
         seen = set()
     root = os.fstat(fd)
     total = root.st_blocks * 512
     for name in os.listdir(fd):
-        entry = os.stat(name, dir_fd=fd, follow_symlinks=False)
+        try:
+            entry = os.stat(name, dir_fd=fd, follow_symlinks=False)
+        except FileNotFoundError:
+            if tolerate_missing:
+                continue
+            raise
         key = (entry.st_dev, entry.st_ino)
         if key in seen:
             continue
         seen.add(key)
         if stat.S_ISDIR(entry.st_mode):
-            child = child_dir(fd, name)
+            try:
+                child = child_dir(fd, name)
+            except FileNotFoundError:
+                if tolerate_missing:
+                    continue
+                raise
             try:
                 if identity(os.fstat(child)) != identity(entry):
                     raise ValueError('Directory changed while scanning')
-                total += disk_size(child, seen)
+                total += disk_size(child, seen, tolerate_missing=tolerate_missing)
             finally:
                 os.close(child)
         else:
@@ -172,7 +182,7 @@ def execute(request):
             try:
                 if identity(os.fstat(child)) != request['identity']:
                     raise ValueError('Directory changed')
-                size = disk_size(child)
+                size = disk_size(child, tolerate_missing=True)
                 if identity(os.stat(name, dir_fd=fd, follow_symlinks=False)) != request['identity']:
                     raise ValueError('Directory replaced during size calculation')
                 return {'root_identity': root_identity, 'bytes': size}

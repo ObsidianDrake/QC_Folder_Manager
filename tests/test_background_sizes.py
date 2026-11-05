@@ -77,3 +77,71 @@ def test_size_failure_keeps_previous_value_and_restart_clears_busy(web, configur
     m.db.recover()
     assert m.db.record(row['id'])['size_state']=='interrupted'
     assert m.db.record(row['id'])['size_ticket'] is None
+
+
+
+def test_size_missing_entries_are_tolerated_only_for_estimates(tmp_path, monkeypatch):
+    import os
+    import pytest
+    folder = tmp_path/'qc_1'
+    folder.mkdir()
+    (folder/'keep').write_bytes(b'x'*8192)
+    (folder/'gone').write_bytes(b'x')
+    original = fs_helper.os.stat
+    def stat_entry(name, *args, **kwargs):
+        if name == 'gone':
+            raise FileNotFoundError(2, 'disappeared', name)
+        return original(name, *args, **kwargs)
+    monkeypatch.setattr(fs_helper.os, 'stat', stat_entry)
+    fd = os.open(str(folder), fs_helper.FLAGS)
+    try:
+        assert fs_helper.disk_size(fd, tolerate_missing=True) >= 8192
+        with pytest.raises(FileNotFoundError):
+            fs_helper.disk_size(fd)
+    finally:
+        os.close(fd)
+
+
+def test_size_timeout_logs_context_and_seconds(web, configuration, monkeypatch, caplog):
+    import logging
+    from qcmanager.storage import StorageError
+    app, _, _ = web
+    m = app.extensions['manager']; p = configuration['projects'][0]
+    (Path(p['run_folder'])/'qc_1').mkdir()
+    m.db.start_scan(p['id'])
+    m.db.finish_scan(p['id'], m.storage.request(p, 'scan', metadata_only=True))
+    row = m.db.inventory({p['id']})[0][0]
+    def fail(*args, **kwargs):
+        raise StorageError('SSH command timed out', details={'timeout_seconds':1800},
+                           ui_message='SSH timeout')
+    monkeypatch.setattr(m.storage, 'request', fail)
+    with caplog.at_level(logging.WARNING, logger='qcmanager'):
+        m.queue_sizes([row])
+        wait_for(lambda: m.db.record(row['id']).get('size_state') == 'failed')
+    assert 'size calculation failed' in caplog.text
+    assert 'timeout_seconds' in caplog.text and '1800' in caplog.text
+    assert p['id'] in caplog.text and 'qc_1' in caplog.text
+
+
+def test_size_missing_subdirectory_is_skipped_but_permission_errors_fail(tmp_path, monkeypatch):
+    import os
+    import pytest
+    (tmp_path/'gone').mkdir()
+    original = fs_helper.child_dir
+    def missing(fd, name):
+        if name == 'gone':
+            raise FileNotFoundError(2, 'disappeared', name)
+        return original(fd, name)
+    fd = os.open(str(tmp_path), fs_helper.FLAGS)
+    try:
+        monkeypatch.setattr(fs_helper, 'child_dir', missing)
+        assert fs_helper.disk_size(fd, tolerate_missing=True) == os.fstat(fd).st_blocks*512
+        with pytest.raises(FileNotFoundError):
+            fs_helper.disk_size(fd)
+        def denied(fd, name):
+            raise PermissionError(13, 'denied', name)
+        monkeypatch.setattr(fs_helper, 'child_dir', denied)
+        with pytest.raises(PermissionError):
+            fs_helper.disk_size(fd, tolerate_missing=True)
+    finally:
+        os.close(fd)

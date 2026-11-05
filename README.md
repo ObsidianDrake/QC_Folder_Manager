@@ -206,3 +206,5 @@ Gitea admin 可使用「專案管理」新增、編輯與移除專案；儲存�
 最低覆蓋率為 **80%**（`--cov-fail-under=80`）；低於門檻時 pytest 會以非零狀態結束，讓 CI 判定失敗。
 
 統計範圍為 `qcmanager` Python 程式碼，不包含前端 JavaScript，也不包含獨立執行的 binary smoke test。每次測試重新產生報告，報告與 `.coverage` 資料已加入 Git 忽略清單。
+
+容量估算會略過遞迴掃描途中已消失的檔案／子目錄；執行中資料持續變動，結果僅為估計值。根目錄身分、權限、symlink 與 mount 安全檢查仍保留，刪除前檢查也維持嚴格模式。容量計算失敗時，後端 `size calculation failed diagnostic=` log 會記錄專案、紀錄、資料夾、主機、例外類型及儲存錯誤診斷；SSH 逾時會記錄 `timeout_seconds`。大型遠端資料夾可依實際耗時調整對應 host 的 `ssh.timeout_seconds`（預設 1800 秒），修改後重啟服務。UI 失敗提示不變。

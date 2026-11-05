@@ -176,7 +176,17 @@ class Manager:
                         name=row['name'], identity=row['identity'], root_identity=row['root_identity'])
                     self.db.patch_record(row, {'bytes':result['bytes'],'size_at':time.time(),
                                               'size_state':'cached','size_error':None},ticket)
-                except Exception:
+                except Exception as error:
+                    project = self.projects.get(row['project'], {})
+                    host = self.config['hosts'].get(project.get('host'), {})
+                    details = dict(project=row['project'], record=row['id'], folder=row['name'],
+                                   host=host.get('hostname', project.get('host')),
+                                   transport=host.get('transport'), root=project.get('run_folder'),
+                                   exception=exception_details(error))
+                    if isinstance(error, StorageError):
+                        details['reason'] = error.ui_message
+                        details['storage'] = error.details
+                    self.log.warning('size calculation failed diagnostic=%s', json.dumps(details, ensure_ascii=True))
                     self.db.patch_record(row, {'size_state':'failed','size_error':'Capacity calculation failed'},ticket)
                 finally:
                     with self.guard:
