@@ -1,5 +1,6 @@
 'use strict';
 const translations = {
+  "選取項目包含受保護紀錄，無法刪除。": "Selection contains protected records and cannot be deleted.",
   "保留最近 30 天的已結束紀錄；待處理工作不會自動清除。": "Completed history is retained for 30 days. Unresolved work is kept.",
   "上一頁": "Previous",
   "下一頁": "Next",
@@ -35,7 +36,7 @@ const translations = {
   "可清理": "Eligible for deletion",
   "已選取 0 筆": "0 selected",
   "刪除選取資料": "Delete selected",
-  "選取畫面上所有可清理紀錄": "Select all visible eligible records",
+  "選取畫面上所有紀錄": "Select all visible records",
   "執行資料／專案": "Run folder / Project",
   "Drone 狀態": "Drone status",
   "估計大小": "Estimated size",
@@ -205,6 +206,7 @@ const translations = {
   "專案設定已儲存並生效，系統將自動重新掃描。": "Project settings saved and applied. An automatic rescan will follow."
 };
 const hindiTranslations = {
+  "選取項目包含受保護紀錄，無法刪除。": "चयन में सुरक्षित रिकॉर्ड हैं; इन्हें हटाया नहीं जा सकता।",
   "保留最近 30 天的已結束紀錄；待處理工作不會自動清除。": "पूरे हो चुके कार्यों का इतिहास 30 दिनों तक रखा जाता है। अनसुलझे कार्य सुरक्षित रखे जाते हैं।",
   "上一頁": "पिछला",
   "下一頁": "अगला",
@@ -240,7 +242,7 @@ const hindiTranslations = {
   "可清理": "हटाने योग्य",
   "已選取 0 筆": "0 चयनित",
   "刪除選取資料": "चयनित हटाएँ",
-  "選取畫面上所有可清理紀錄": "दिख रहे सभी हटाने योग्य रिकॉर्ड चुनें",
+  "選取畫面上所有紀錄": "दिख रहे सभी रिकॉर्ड चुनें",
   "執行資料／專案": "रन फ़ोल्डर / प्रोजेक्ट",
   "Drone 狀態": "Drone की स्थिति",
   "估計大小": "अनुमानित आकार",
