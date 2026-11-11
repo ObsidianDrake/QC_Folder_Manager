@@ -221,8 +221,11 @@ class Manager:
             row['host'] = project['host']
             row['path'] = project['run_folder']+'/'+row['name']
             scan_ok = scans.get(row['project'],{}).get('state') == 'ready'
-            row['deletable'] = bool(scan_ok and row.get('drone_status') in TERMINAL and not row.get('error') and not row.get('operation_state'))
-            if row.get('operation_state'):
+            policy_allowed = actor.get('is_admin', False) or project.get('allow_user_delete', True)
+            row['deletable'] = bool(policy_allowed and scan_ok and row.get('drone_status') in TERMINAL and not row.get('error') and not row.get('operation_state'))
+            if not policy_allowed:
+                reason = '此專案未開放一般使用者刪除，請聯絡管理員。'
+            elif row.get('operation_state'):
                 reason = '清理工作處理中或待人工核對'
             elif not scan_ok:
                 reason = '請完成一次成功掃描'
@@ -250,6 +253,9 @@ class Manager:
                 # Persist refusal without returning target details to the caller.
                 self.db.rejected(actor,row['project'] if row else None,{'reason':'unauthorized or missing record'})
                 raise RequestError('包含無權限或不存在的紀錄。',404)
+            if not actor.get('is_admin', False) and not allowed[row['project']].get('allow_user_delete', True):
+                self.db.rejected(actor,row['project'],{'reason':'project user deletion disabled','record':rid})
+                raise RequestError('此專案未開放一般使用者刪除，請聯絡管理員。',403)
             if row.get('drone_checked_at') is None:
                 raise RequestError('請完成一次成功掃描',409)
             if row.get('error'):
@@ -281,6 +287,9 @@ class Manager:
                 actor = self.refresh_actor(token,original_actor)
                 if not permitted(actor,project):
                     self.db.update_operation(oid,'rejected','Gitea 權限已變更')
+                    return
+                if not actor.get('is_admin', False) and not project.get('allow_user_delete', True):
+                    self.db.update_operation(oid,'rejected','此專案未開放一般使用者刪除，請聯絡管理員。')
                     return
                 build = self.drone.build(project,row['number'])
                 if build['status'] not in TERMINAL:

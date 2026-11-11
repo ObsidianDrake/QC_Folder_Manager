@@ -15,7 +15,7 @@ from .config import ConfigError, UniqueLoader, validate_config
 from .clients import permitted
 from .service import RequestError
 
-FIELDS = ('id', 'organization', 'repository', 'host', 'run_folder', 'prefix')
+FIELDS = ('id', 'organization', 'repository', 'host', 'run_folder', 'prefix', 'allow_user_delete')
 
 
 def identity(project):
@@ -90,8 +90,13 @@ class ProjectSettings:
             projects = [p for p in projects if p['id'] != pid]
             current = None
         else:
-            current = body.get('project')
-            if not isinstance(current,dict) or set(current) != set(FIELDS) or any(not isinstance(v,str) for v in current.values()):
+            current = copy.deepcopy(body.get('project'))
+            if isinstance(current, dict):
+                existing = manager.projects.get(current.get('id'), {}) if isinstance(current.get('id'), str) else {}
+                current.setdefault('allow_user_delete', existing.get('allow_user_delete', True))
+            if (not isinstance(current,dict) or set(current) != set(FIELDS)
+                    or any(not isinstance(current[k],str) for k in FIELDS if k != 'allow_user_delete')
+                    or not isinstance(current['allow_user_delete'], bool)):
                 raise RequestError('請填寫所有專案欄位。')
             pid = current['id']
             previous = manager.projects.get(pid)

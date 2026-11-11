@@ -1,5 +1,11 @@
 'use strict';
 const translations = {
+  "此專案未開放一般使用者刪除，請聯絡管理員。": "User deletion is disabled for this project. Contact an administrator.",
+  "允許一般使用者刪除": "Allow users to delete folders",
+  "一般使用者刪除：停用": "User deletion: disabled",
+  "一般使用者刪除：開放": "User deletion: enabled",
+  "關閉後，只有 Admin 可刪除此專案的資料夾；執行中的 build 仍受保護。": "When disabled, only admins can delete project folders. Running builds remain protected.",
+
   "已排入 {count} 個專案容量計算": "Queued size updates for {count} projects",
   "更新全部容量": "Update all sizes",
   "選取項目包含受保護紀錄，無法刪除。": "Selection contains protected records and cannot be deleted.",
@@ -208,6 +214,12 @@ const translations = {
   "專案設定已儲存並生效，系統將自動重新掃描。": "Project settings saved and applied. An automatic rescan will follow."
 };
 const hindiTranslations = {
+  "此專案未開放一般使用者刪除，請聯絡管理員。": "इस प्रोजेक्ट में उपयोगकर्ताओं को हटाने की अनुमति नहीं है। व्यवस्थापक से संपर्क करें।",
+  "允許一般使用者刪除": "उपयोगकर्ताओं को फ़ोल्डर हटाने की अनुमति दें",
+  "一般使用者刪除：停用": "उपयोगकर्ता द्वारा हटाना: बंद",
+  "一般使用者刪除：開放": "उपयोगकर्ता द्वारा हटाना: चालू",
+  "關閉後，只有 Admin 可刪除此專案的資料夾；執行中的 build 仍受保護。": "बंद होने पर केवल व्यवस्थापक प्रोजेक्ट फ़ोल्डर हटा सकते हैं। चल रहे बिल्ड सुरक्षित रहते हैं।",
+
   "已排入 {count} 個專案容量計算": "{count} परियोजनाओं के आकार अपडेट कतार में हैं",
   "更新全部容量": "सभी आकार अपडेट करें",
   "選取項目包含受保護紀錄，無法刪除。": "चयन में सुरक्षित रिकॉर्ड हैं; इन्हें हटाया नहीं जा सकता।",

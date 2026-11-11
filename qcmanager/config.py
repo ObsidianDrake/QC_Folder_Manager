@@ -169,6 +169,9 @@ def validate_config(config, source):
     for p in projects:
         if not isinstance(p, dict):
             raise ConfigError("Invalid project")
+        p.setdefault("allow_user_delete", True)
+        if not isinstance(p["allow_user_delete"], bool):
+            raise ConfigError("allow_user_delete must be a boolean")
         for name in ("id", "organization", "repository", "prefix"):
             value = p.get(name)
             if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", value):

@@ -29,7 +29,7 @@ def save(client,headers,action,project=None,pid=None,revision=None):
 
 def new_project(configuration):
     return dict(id='new-project',organization='OtherVendor',repository='Other_QC',host='local',
-                run_folder=str(Path(configuration['projects'][0]['run_folder']).parent/'new-runs'),prefix='qc')
+                run_folder=str(Path(configuration['projects'][0]['run_folder']).parent/'new-runs'),prefix='qc',allow_user_delete=True)
 
 
 def test_vendor_denied_and_fresh_admin_revocation(web):

@@ -47,6 +47,7 @@
           <label>Host<select id="edit-host" required></select></label>
           <label class="wide">Run folder<input id="edit-run_folder" required placeholder="/srv/qc/example-project"></label>
           <label>Prefix<input id="edit-prefix" required pattern="[A-Za-z0-9][A-Za-z0-9_.-]*" maxlength="128"></label>
+          <div class="wide project-delete-policy"><label><input type="checkbox" id="edit-allow_user_delete" checked><span data-i18n="允許一般使用者刪除">允許一般使用者刪除</span></label><small data-i18n="關閉後，只有 Admin 可刪除此專案的資料夾；執行中的 build 仍受保護。">關閉後，只有 Admin 可刪除此專案的資料夾；執行中的 build 仍受保護。</small></div>
         </div>
         <p class="muted">專案 ID、Organization 與 Repository 建立後固定；變更歸屬請新增專案。儲存後系統會自動重新掃描。</p>
         <div class="dialog-actions"><button id="admin-cancel" class="button" type="button">取消</button><button id="admin-save" class="button primary" type="submit">儲存專案</button></div>

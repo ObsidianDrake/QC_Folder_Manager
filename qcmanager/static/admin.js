@@ -15,7 +15,7 @@ function renderAdmin(){
   if(!adminSettings)return;
   for(const p of adminSettings.projects){
     const card=node('article',undefined,'admin-project'),details=node('div');
-    details.append(node('strong',p.organization+'/'+p.repository),node('small',p.id+' · '+p.host),node('code',p.run_folder),node('small','Prefix: '+p.prefix));
+    details.append(node('strong',p.organization+'/'+p.repository),node('small',p.id+' · '+p.host),node('code',p.run_folder),node('small','Prefix: '+p.prefix),node('small',p.allow_user_delete===false?'一般使用者刪除：停用':'一般使用者刪除：開放'));
     const actions=node('div',undefined,'selection-actions'),edit=node('button','編輯','button'),remove=node('button','移除專案','button danger');
     edit.disabled=remove.disabled=!adminSettings.writable||adminSaving;
     edit.addEventListener('click',()=>openProject(p));
@@ -43,6 +43,7 @@ function openProject(project){
   $('edit-host').replaceChildren();
   for(const host of adminSettings.hosts)$('edit-host').add(new Option(host.id+(host.hostname?' · '+host.hostname:''),host.id));
   for(const key of projectFields){const field=$('edit-'+key);if(project)field.value=project[key];if(['id','organization','repository'].includes(key))field.readOnly=!!project;}
+  $('edit-allow_user_delete').checked=project?.allow_user_delete!==false;
   $('project-form').hidden=false;$('edit-'+(project?'run_folder':'id')).focus();
 }
 async function saveProject(payload){
@@ -72,5 +73,5 @@ for(const id of ['records-tab','audit-tab'])$(id).addEventListener('click',()=>{
 $('admin-new').addEventListener('click',()=>openProject(null));
 $('admin-reload').addEventListener('click',()=>{if(adminSaving)return;$('project-form').hidden=true;loadAdmin();});
 $('admin-cancel').addEventListener('click',()=>{$('project-form').hidden=true;});
-$('project-form').addEventListener('submit',event=>{event.preventDefault();const project={};for(const key of projectFields)project[key]=$('edit-'+key).value.trim();saveProject({action:editingProject?'update':'create',project});});
+$('project-form').addEventListener('submit',event=>{event.preventDefault();const project={};for(const key of projectFields)project[key]=$('edit-'+key).value.trim();project.allow_user_delete=$('edit-allow_user_delete').checked;saveProject({action:editingProject?'update':'create',project});});
 window.addEventListener('qc-language-change',()=>{renderAdmin();$('project-form-title').textContent=t(editingProject?'編輯專案':'新增專案');});

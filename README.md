@@ -215,3 +215,7 @@ helper 在已驗證並開啟的專案根目錄內執行一次 `dust -j -o b -d 1
 掃描途中消失的檔案／子目錄由 dust 略過；其他 stderr 錯誤、非零 exit、無效輸出及逾時視為失敗，保留舊容量。後端 `size calculation failed diagnostic=` log 會記錄專案、紀錄、主機，以及 `dust_not_found`、`dust_permission_denied`、`dust_scan_error`、`dust_exit_failed`、`dust_invalid_output`、`dust_timeout` 等原因與 exit code／timeout。UI 失敗提示不變。SSH host 的 dust timeout 上限為 `ssh.timeout_seconds - 5`，讓 helper 先終止 dust 並回報錯誤；大型資料夾可同時調高兩個 timeout，修改後重啟。
 
 容量估算不是刪除安全檢查：dust 的 filesystem 限制不等同逐目錄 mount ID 驗證。刪除前仍沿用原本 Python 嚴格走訪、目錄身分／mount／symlink 檢查及 Drone 執行狀態保護。
+
+### Project deletion permission
+
+Each project supports `allow_user_delete: true` (default). Administrators can change this in Project management. Setting it to `false` prevents ordinary users from deleting that project’s run folders; they can still view and refresh sizes. Admins bypass this project setting, but all Drone and filesystem safety checks still apply. The policy is checked both when a deletion is requested and immediately before execution.

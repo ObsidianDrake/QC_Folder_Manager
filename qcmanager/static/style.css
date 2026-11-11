@@ -49,3 +49,5 @@ header{height:82px}main{padding-top:24px}.logo{padding:10px;border-radius:12px;b
 @media(max-width:600px){.page-head{grid-template-columns:1fr}.page-head>.button{justify-self:start}}
 
 .history-pages{display:flex;align-items:center;justify-content:flex-end;gap:16px;margin:16px 0}.history-pages span{color:#60756a}#operations td:first-child{white-space:nowrap}
+
+.project-delete-policy{padding:16px;background:#edf4f0;border-radius:8px}.project-fields .project-delete-policy label{flex-direction:row;align-items:center;font-weight:600}.project-fields .project-delete-policy input{width:18px;height:18px;accent-color:#126950}.project-delete-policy small{display:block;margin-top:8px;color:#426454;line-height:1.6}

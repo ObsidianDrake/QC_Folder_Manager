@@ -69,5 +69,6 @@ projects:
     host: "remote-worker"
     run_folder: "/srv/qc/example-project"
     prefix: "qc"
+    allow_user_delete: true  # false: only admins may delete; running builds remain protected
     # 虛構案例：此根目錄下的 qc_1234 對應 Drone build #1234。
 
