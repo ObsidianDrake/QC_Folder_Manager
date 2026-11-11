@@ -101,7 +101,7 @@ class Manager:
                 # Publish directory names first. Recursive size I/O uses a separate worker.
                 self.db.finish_scan(pid,result=result,state="checking")
                 snapshots, _ = self.db.inventory({pid})
-                self.queue_sizes([row for row in snapshots if row.get('bytes') is None and not row.get('error')])
+                self.queue_sizes([row for row in snapshots if not row.get('error')])
                 stage = 'drone'
                 for row in snapshots:
                     fields = {'drone_checked_at': time.time()}

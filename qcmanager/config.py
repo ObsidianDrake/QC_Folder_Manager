@@ -120,6 +120,19 @@ def validate_config(config, source):
             raise ConfigError("Host transport must be local or ssh")
         if not isinstance(host.get('environment'), str) or not host['environment']:
             raise ConfigError('Host environment is required')
+        dust = host.setdefault('dust', {})
+        if not isinstance(dust, dict) or set(dust) - {'executable', 'threads', 'timeout_seconds'}:
+            raise ConfigError('Unknown dust setting')
+        executable = dust.setdefault('executable', 'dust')
+        if (not isinstance(executable, str) or not executable or executable.startswith('-') or
+                any(c in executable for c in ('\x00', '\r', '\n')) or
+                ('/' in executable and not executable.startswith('/'))):
+            raise ConfigError('dust.executable must be an absolute path or a command name')
+        dust.setdefault('threads', 4)
+        dust.setdefault('timeout_seconds', 1800)
+        for key, low, high in (('threads', 1, 64), ('timeout_seconds', 1, 86400)):
+            if type(dust[key]) is not int or not low <= dust[key] <= high:
+                raise ConfigError('Invalid dust.' + key)
         if host["transport"] == "ssh":
             if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", host.get("hostname", "")):
                 raise ConfigError("Invalid SSH hostname/alias")

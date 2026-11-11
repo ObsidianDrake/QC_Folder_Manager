@@ -1,5 +1,6 @@
 'use strict';
 const translations = {
+  "更新全部容量": "Update all sizes",
   "選取項目包含受保護紀錄，無法刪除。": "Selection contains protected records and cannot be deleted.",
   "保留最近 30 天的已結束紀錄；待處理工作不會自動清除。": "Completed history is retained for 30 days. Unresolved work is kept.",
   "上一頁": "Previous",
@@ -206,6 +207,7 @@ const translations = {
   "專案設定已儲存並生效，系統將自動重新掃描。": "Project settings saved and applied. An automatic rescan will follow."
 };
 const hindiTranslations = {
+  "更新全部容量": "सभी आकार अपडेट करें",
   "選取項目包含受保護紀錄，無法刪除。": "चयन में सुरक्षित रिकॉर्ड हैं; इन्हें हटाया नहीं जा सकता।",
   "保留最近 30 天的已結束紀錄；待處理工作不會自動清除。": "पूरे हो चुके कार्यों का इतिहास 30 दिनों तक रखा जाता है। अनसुलझे कार्य सुरक्षित रखे जाते हैं।",
   "上一頁": "पिछला",

@@ -186,7 +186,8 @@ Gitea admin 可使用「專案管理」新增、編輯與移除專案；儲存�
 - 管理頁新增／修改專案後，下次排程檢查自動掃描；移除的專案不再排程。排程與管理 API 共用設定鎖，掃描中不能修改該專案；設定需復原時暫停排程。
 - 列表不再顯示 Last scanned 欄位及專案掃描完成時間；後端仍保留 `scanned_at` 供診斷，頁面保留尚未掃描、掃描中／失敗與待處理事項。每輪掃描會更新目錄清單及 Drone 狀態。
 - **容量更新時間 / Size updated**：最近一次成功完成該資料夾遞迴容量計算的時間。不是目錄掃描時間。
-- 自動與手動 Rescan 都保留已有容量快取，只為未知容量排入計算。需要重算已有容量時，使用該列或選取紀錄的容量更新按鈕；容量計算失敗時保留舊值與舊時間。
+- 自動與手動 Rescan 都會替全部有效 run folder 排入 dust 容量計算，包括執行中的 build。計算期間保留舊值；已排隊或計算中的紀錄不重複排入。預設每輪掃描間隔 300 秒，容量實際完成時間取決於佇列與資料量，並非保證每 5 分鐘完成。
+- 「更新全部容量」更新目前所選專案的所有紀錄；選擇「全部可存取專案」時涵蓋所有有權限的專案，不受搜尋／狀態篩選限制。不需勾選，另保留選取更新與逐列更新；容量計算失敗保留舊值與舊時間。
 - 自動掃描沿用原本的刪除保護、資料隔離及服務憑證；不新增使用者權限，也不自動刪除任何資料。
 
 ## 刪除紀錄與保留期限
@@ -207,4 +208,10 @@ Gitea admin 可使用「專案管理」新增、編輯與移除專案；儲存�
 
 統計範圍為 `qcmanager` Python 程式碼，不包含前端 JavaScript，也不包含獨立執行的 binary smoke test。每次測試重新產生報告，報告與 `.coverage` 資料已加入 Git 忽略清單。
 
-容量估算會略過遞迴掃描途中已消失的檔案／子目錄；執行中資料持續變動，結果僅為估計值。根目錄身分、權限、symlink 與 mount 安全檢查仍保留，刪除前檢查也維持嚴格模式。容量計算失敗時，後端 `size calculation failed diagnostic=` log 會記錄專案、紀錄、資料夾、主機、例外類型及儲存錯誤診斷；SSH 逾時會記錄 `timeout_seconds`。大型遠端資料夾可依實際耗時調整對應 host 的 `ssh.timeout_seconds`（預設 1800 秒），修改後重啟服務。UI 失敗提示不變。
+容量估算由資料所在主機的 **dust** 執行（相容 dust 1.1.1 與 1.2.7），遠端主機仍需要 Python >= 3.9 啟動 helper。每個 local/SSH host 可設定 `dust.executable`（預設 `dust`，建議絕對路徑）、`dust.threads`（預設 4）、`dust.timeout_seconds`（預設 1800）。服務不會自動下載 dust，也不會找不到 dust 時靜默改用 Python。請先以服務帳號確認 `dust --version`；指令須支援 `-j`、`-o b`、`-T`。
+
+helper 在已驗證並開啟的 run folder 內執行 `dust -j -o b -d 0 -n 1 -P -c -x -T 4 -- .`，解析 JSON 的 byte 數；僅在 dust 子程序中將 HOME／XDG_CONFIG_HOME 指向暫存空目錄，避免帳號的 dust 設定改變計算方式（1.1.1 不支援 --config）。只取得總量但仍遞迴計算內容，包含隱藏檔案、不跟隨 symlink、限制同一 filesystem。每個 run folder 獨立計算 hard link，跨 run folder 的加總可能重複計入共用檔案。
+
+掃描途中消失的檔案／子目錄由 dust 略過；其他 stderr 錯誤、非零 exit、無效輸出及逾時視為失敗，保留舊容量。後端 `size calculation failed diagnostic=` log 會記錄專案、紀錄、主機，以及 `dust_not_found`、`dust_permission_denied`、`dust_scan_error`、`dust_exit_failed`、`dust_invalid_output`、`dust_timeout` 等原因與 exit code／timeout。UI 失敗提示不變。SSH host 的 dust timeout 上限為 `ssh.timeout_seconds - 5`，讓 helper 先終止 dust 並回報錯誤；大型資料夾可同時調高兩個 timeout，修改後重啟。
+
+容量估算不是刪除安全檢查：dust 的 filesystem 限制不等同逐目錄 mount ID 驗證。刪除前仍沿用原本 Python 嚴格走訪、目錄身分／mount／symlink 檢查及 Drone 執行狀態保護。

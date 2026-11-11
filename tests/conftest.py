@@ -54,7 +54,12 @@ class FakeDrone:
 
 
 @pytest.fixture
-def web(configuration):
+def web(configuration, monkeypatch):
+    # Web/scheduler tests exercise queueing without requiring a system dust install.
+    # test_dust_sizes separately checks the subprocess contract and real binary.
+    from qcmanager import fs_helper
+    monkeypatch.setattr(fs_helper, 'dust_size', lambda fd, options:
+                        fs_helper.disk_size(fd, tolerate_missing=True))
     gitea,drone=FakeGitea(),FakeDrone()
     app=create_app(configuration,gitea=gitea,drone=drone)
     app.config['TESTING']=True

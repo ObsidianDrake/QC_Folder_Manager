@@ -16,8 +16,16 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           cache: pip
+      - name: Install production-compatible dust 1.1.1 for integration tests
+        run: |
+          curl -fL --retry 3 https://github.com/bootandy/dust/releases/download/v1.1.1/dust-v1.1.1-x86_64-unknown-linux-musl.tar.gz -o /tmp/dust.tar.gz
+          echo '4d0e7f3e39ce85e98cc69260ab6f40e460a455cd8575af1ba70d14a2940ae553  /tmp/dust.tar.gz' | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/dust-bin"
+          tar -xzf /tmp/dust.tar.gz -C "$RUNNER_TEMP/dust-bin" --strip-components=1
+          echo "$RUNNER_TEMP/dust-bin" >> "$GITHUB_PATH"
       - run: make test
       - run: make check-config
       - run: make build
       - run: .venv/bin/python tests/smoke_binary.py dist/qc-folder-manager
       # Ubuntu binaries are smoke-test artifacts, not RHEL release binaries.
+

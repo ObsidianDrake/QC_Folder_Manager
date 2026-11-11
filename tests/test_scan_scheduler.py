@@ -41,7 +41,7 @@ def test_startup_and_periodic_scans_without_browser_or_gitea_login(web, monkeypa
     assert not thread.is_alive()
 
 
-def test_auto_rescan_refreshes_metadata_and_drone_but_keeps_cached_sizes(web):
+def test_auto_rescan_refreshes_metadata_drone_and_cached_sizes(web):
     manager, auto = scheduler(web)
     root = Path(manager.projects['example-project']['run_folder'])
     (root/'qc_1').mkdir(); (root/'qc_1'/'data').write_text('first')
@@ -60,7 +60,8 @@ def test_auto_rescan_refreshes_metadata_and_drone_but_keeps_cached_sizes(web):
     after = next(row for row in rows if row['number'] == 1)
     assert after['drone_status'] == 'success'
     assert after['scanned_at'] > before['scanned_at']
-    assert (after['bytes'], after['size_at']) == (before['bytes'], before['size_at'])
+    assert after['bytes'] > before['bytes']
+    assert after['size_at'] > before['size_at']
     assert all(row['size_at'] for row in rows)
 
 

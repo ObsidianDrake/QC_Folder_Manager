@@ -6,16 +6,83 @@ directory traversal; fd-relative operations anchor all work to the opened root.
 import json
 import os
 import re
+import shutil
 import stat
+import subprocess
 import sys
+import tempfile
 
 FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
 
 
 def failure_details(error):
     # Structured fields only: exception strings may contain private paths or input.
+    if isinstance(error, DustError):
+        return dict(error.details, error_type='DustError')
     return {'error_type': type(error).__name__,
             'error_errno': error.errno if isinstance(error, OSError) else None}
+
+
+class DustError(ValueError):
+    def __init__(self, reason, **details):
+        super().__init__(reason)
+        self.details = dict(reason=reason, **details)
+
+
+def dust_size(fd, options):
+    """Measure an opened run directory; never invoke a shell or user dust config."""
+    executable = options.get('executable', 'dust')
+    # Resolve PATH before changing cwd to the vendor-controlled run folder.
+    if not os.path.isabs(executable):
+        executable = shutil.which(executable)
+        if executable is None:
+            raise DustError('dust_not_found')
+        executable = os.path.abspath(executable)
+    timeout = options.get('timeout_seconds', 1800)
+    environment = os.environ.copy()
+    environment['LC_ALL'] = 'C'
+    # A bundled Python's libraries must not be injected into an external binary.
+    if getattr(sys, 'frozen', False):
+        if 'LD_LIBRARY_PATH_ORIG' in environment:
+            environment['LD_LIBRARY_PATH'] = environment['LD_LIBRARY_PATH_ORIG']
+        else:
+            environment.pop('LD_LIBRARY_PATH', None)
+    with tempfile.TemporaryDirectory(prefix='qc-dust-') as temporary:
+        # Dust 1.1.1 has no --config flag. Isolate only this child's configuration
+        # lookup; never change the service account's environment or home files.
+        environment['HOME'] = temporary
+        environment['XDG_CONFIG_HOME'] = temporary
+        command = [executable, '-j', '-o', 'b', '-d', '0',
+                   '-n', '1', '-P', '-c', '-x', '-T', str(options.get('threads', 4)), '--', '.']
+        try:
+            proc = subprocess.run(command, cwd='/proc/self/fd/%d' % fd, pass_fds=(fd,),
+                                  stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                  text=True, encoding='utf-8', errors='replace', env=environment,
+                                  timeout=timeout, check=False)
+        except FileNotFoundError as error:
+            raise DustError('dust_not_found') from error
+        except subprocess.TimeoutExpired as error:
+            raise DustError('dust_timeout', timeout_seconds=timeout) from error
+        except OSError as error:
+            raise DustError('dust_start_failed', error_errno=error.errno) from error
+    # Dust can return zero even after a permission/I/O error. Only disappearing
+    # entries are acceptable for an estimate; other warnings retain the old value.
+    warnings = [line for line in proc.stderr.splitlines() if line.strip()]
+    if any(not line.startswith('No such file or directory: ') for line in warnings):
+        reason = 'dust_permission_denied' if 'permission' in proc.stderr.lower() else 'dust_scan_error'
+        raise DustError(reason, exit_code=proc.returncode)
+    if proc.returncode:
+        raise DustError('dust_exit_failed', exit_code=proc.returncode)
+    try:
+        result = json.loads(proc.stdout)
+        value = result['size']
+        if isinstance(value, str) and re.fullmatch(r'[0-9]+B?', value):
+            value = int(value.rstrip('B'))
+        if type(value) is not int or value < 0:
+            raise ValueError('Invalid byte count')
+    except (ValueError, TypeError, KeyError) as error:
+        raise DustError('dust_invalid_output') from error
+    return value
 
 
 def identity(info):
@@ -182,7 +249,7 @@ def execute(request):
             try:
                 if identity(os.fstat(child)) != request['identity']:
                     raise ValueError('Directory changed')
-                size = disk_size(child, tolerate_missing=True)
+                size = dust_size(child, request.get('dust', {}))
                 if identity(os.stat(name, dir_fd=fd, follow_symlinks=False)) != request['identity']:
                     raise ValueError('Directory replaced during size calculation')
                 return {'root_identity': root_identity, 'bytes': size}

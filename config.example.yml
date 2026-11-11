@@ -46,6 +46,10 @@ hosts:
     environment: "zone-b"
     transport: "ssh"
     hostname: "qc-worker.example.com"
+    dust:
+      executable: "dust"  # 在此遠端主機執行；建議填 dust 的絕對路徑。local host 也支援此設定。
+      threads: 4  # 1–64，限制並行 metadata 查詢。
+      timeout_seconds: 1800  # SSH host 的實際上限為 ssh.timeout_seconds 減 5 秒。
     ssh:
       python: "python3"  # 遠端主機需 Python >= 3.9；可指定既有 Python 的絕對路徑。
       timeout_seconds: 1800

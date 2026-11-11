@@ -13,7 +13,7 @@ def test_quick_scan_never_walks_contents(tmp_path, monkeypatch):
     assert result['records'][0]['error'] is None
 
 
-def test_slow_size_does_not_block_inventory_and_cached_rescan(web, configuration, monkeypatch):
+def test_slow_size_does_not_block_inventory_and_rescan_refreshes_size(web, configuration, monkeypatch):
     app,gitea,_ = web
     m=app.extensions['manager']; root=Path(configuration['projects'][0]['run_folder'])
     (root/'qc_1').mkdir()
@@ -42,7 +42,8 @@ def test_slow_size_does_not_block_inventory_and_cached_rescan(web, configuration
         wait_for(lambda: not m.pending_scans)
         m.scan('example-project',gitea.actor)
         wait_for(lambda: not m.pending_scans)
-        assert calls.count('size')==1
+        wait_for(lambda: not m.pending_sizes)
+        assert calls.count('size')==2
         assert m.db.record(row['id'])['bytes'] is not None
         assert client.post('/api/sizes',json={'records':[row['id']]}).status_code==403
         gitea.actor['orgs']=[]

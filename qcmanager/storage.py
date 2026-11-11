@@ -66,6 +66,12 @@ class Storage:
     def request(self, project, action, **fields):
         body = dict(action=action, root=project['run_folder'], prefix=project['prefix'], **fields)
         host = self.hosts[project['host']]
+        if action == 'size':
+            body['dust'] = dict(host.get('dust', {}))
+            if host['transport'] == 'ssh':
+                # Let the helper terminate dust and return diagnostics before SSH times out.
+                body['dust']['timeout_seconds'] = min(body['dust'].get('timeout_seconds', 1800),
+                                                    host['ssh']['timeout_seconds'] - 5)
         if host['transport'] == 'local':
             try:
                 result = fs_helper.execute(body)
@@ -123,6 +129,15 @@ class Storage:
         if not isinstance(result, dict):
             raise StorageError('Invalid filesystem response', action == 'delete')
         if action != 'delete' and (result.get('error') or 'root_identity' not in result):
+            if result.get('error_type') == 'DustError':
+                reasons = {'dust_not_found', 'dust_timeout', 'dust_start_failed', 'dust_permission_denied',
+                           'dust_scan_error', 'dust_exit_failed', 'dust_invalid_output'}
+                reason = result.get('reason')
+                details = {'reason': reason if reason in reasons else 'dust_scan_error'}
+                for field in ('timeout_seconds', 'exit_code', 'error_errno'):
+                    if type(result.get(field)) is int:
+                        details[field] = result[field]
+                raise StorageError('Dust capacity calculation failed', details=details)
             if result.get('error_code') == 'python_version':
                 raise StorageError('Unsupported remote Python', ui_message='遠端 Python 版本過舊，需要 Python 3.9 以上。')
             kind = result.get('error_type')
