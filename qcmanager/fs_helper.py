@@ -29,7 +29,7 @@ class DustError(ValueError):
         self.details = dict(reason=reason, **details)
 
 
-def dust_size(fd, options):
+def dust_tree(fd, options, depth=0, lines=1):
     """Measure an opened run directory; never invoke a shell or user dust config."""
     executable = options.get('executable', 'dust')
     # Resolve PATH before changing cwd to the vendor-controlled run folder.
@@ -52,8 +52,8 @@ def dust_size(fd, options):
         # lookup; never change the service account's environment or home files.
         environment['HOME'] = temporary
         environment['XDG_CONFIG_HOME'] = temporary
-        command = [executable, '-j', '-o', 'b', '-d', '0',
-                   '-n', '1', '-P', '-c', '-x', '-T', str(options.get('threads', 4)), '--', '.']
+        command = [executable, '-j', '-o', 'b', '-d', str(depth), '-D',
+                   '-n', str(lines), '-P', '-c', '-x', '-T', str(options.get('threads', 4)), '--', '.']
         try:
             proc = subprocess.run(command, cwd='/proc/self/fd/%d' % fd, pass_fds=(fd,),
                                   stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -75,14 +75,69 @@ def dust_size(fd, options):
         raise DustError('dust_exit_failed', exit_code=proc.returncode)
     try:
         result = json.loads(proc.stdout)
-        value = result['size']
-        if isinstance(value, str) and re.fullmatch(r'[0-9]+B?', value):
-            value = int(value.rstrip('B'))
-        if type(value) is not int or value < 0:
-            raise ValueError('Invalid byte count')
+        dust_bytes(result)
+        return result
     except (ValueError, TypeError, KeyError) as error:
         raise DustError('dust_invalid_output') from error
+
+
+def dust_bytes(node):
+    value = node['size']
+    if isinstance(value, str) and re.fullmatch(r'[0-9]+B?', value):
+        value = int(value.rstrip('B'))
+    if type(value) is not int or value < 0:
+        raise DustError('dust_invalid_output')
     return value
+
+
+def dust_size(fd, options):
+    return dust_bytes(dust_tree(fd, options))
+
+
+def project_sizes(fd, pattern, options):
+    names = os.listdir(fd)
+    before = {}
+    for name in names:
+        if not pattern.fullmatch(name):
+            continue
+        try:
+            info = os.stat(name, dir_fd=fd, follow_symlinks=False)
+            if not stat.S_ISDIR(info.st_mode):
+                continue
+            child = child_dir(fd, name)
+            try:
+                if identity(os.fstat(child)) == identity(info):
+                    before[name] = identity(info)
+            finally:
+                os.close(child)
+        except FileNotFoundError:
+            continue
+    # One recursive walk for the entire project, including all immediate folders.
+    tree = dust_tree(fd, options, depth=1, lines=len(names)+1)
+    records = {}
+    try:
+        children = tree['children']
+        if not isinstance(children, list):
+            raise ValueError('Invalid children')
+        for node in children:
+            name = node['name']
+            if not isinstance(name, str):
+                raise ValueError('Invalid name')
+            name = name[2:] if name.startswith('./') else name
+            if name not in before:
+                continue
+            if name in records:
+                raise ValueError('Duplicate folder')
+            value = dust_bytes(node)
+            try:
+                info = os.stat(name, dir_fd=fd, follow_symlinks=False)
+            except FileNotFoundError:
+                continue
+            if identity(info) == before[name] and stat.S_ISDIR(info.st_mode):
+                records[name] = {'bytes': value, 'identity': before[name]}
+    except (ValueError, KeyError, TypeError) as error:
+        raise DustError('dust_invalid_output') from error
+    return records
 
 
 def identity(info):
@@ -209,6 +264,9 @@ def execute(request):
         if not isinstance(prefix, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*', prefix):
             raise ValueError('Invalid prefix')
         pattern = re.compile(re.escape(prefix) + r'_([1-9][0-9]*)', re.ASCII)
+        if action == 'project_sizes':
+            return {'root_identity': root_identity,
+                    'records': project_sizes(fd, pattern, request.get('dust', {}))}
         if action == 'scan':
             rows, quarantines = [], []
             names = os.listdir(fd)

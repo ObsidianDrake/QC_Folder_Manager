@@ -58,8 +58,20 @@ def web(configuration, monkeypatch):
     # Web/scheduler tests exercise queueing without requiring a system dust install.
     # test_dust_sizes separately checks the subprocess contract and real binary.
     from qcmanager import fs_helper
-    monkeypatch.setattr(fs_helper, 'dust_size', lambda fd, options:
-                        fs_helper.disk_size(fd, tolerate_missing=True))
+    import os
+    def project_sizes(fd, pattern, options):
+        records = {}
+        for name in os.listdir(fd):
+            if not pattern.fullmatch(name):
+                continue
+            child = fs_helper.child_dir(fd, name)
+            try:
+                records[name] = dict(bytes=fs_helper.disk_size(child, tolerate_missing=True),
+                                     identity=fs_helper.identity(os.fstat(child)))
+            finally:
+                os.close(child)
+        return records
+    monkeypatch.setattr(fs_helper, 'project_sizes', project_sizes)
     gitea,drone=FakeGitea(),FakeDrone()
     app=create_app(configuration,gitea=gitea,drone=drone)
     app.config['TESTING']=True

@@ -66,7 +66,7 @@ class Storage:
     def request(self, project, action, **fields):
         body = dict(action=action, root=project['run_folder'], prefix=project['prefix'], **fields)
         host = self.hosts[project['host']]
-        if action == 'size':
+        if action in ('size', 'project_sizes'):
             body['dust'] = dict(host.get('dust', {}))
             if host['transport'] == 'ssh':
                 # Let the helper terminate dust and return diagnostics before SSH times out.

@@ -1,5 +1,6 @@
 'use strict';
 const translations = {
+  "已排入 {count} 個專案容量計算": "Queued size updates for {count} projects",
   "更新全部容量": "Update all sizes",
   "選取項目包含受保護紀錄，無法刪除。": "Selection contains protected records and cannot be deleted.",
   "保留最近 30 天的已結束紀錄；待處理工作不會自動清除。": "Completed history is retained for 30 days. Unresolved work is kept.",
@@ -202,11 +203,12 @@ const translations = {
   "移除專案 {project}？此操作不會刪除 QC 資料夾。": "Remove project {project}? This does not delete QC folders.",
   "尚未設定專案，請新增專案。": "No projects configured. Add a project to get started.",
   "尚無執行紀錄。系統會自動掃描，也可按「重新掃描」立即更新。": "No records to display. Scans run automatically; click Rescan to update now.",
-  "系統定期更新目錄清單與 Drone 狀態；目錄掃描不會重算已有容量。容量更新時間代表上次完成計算的時間；總量僅含已知容量。刪除前仍會重新驗證。": "Folder lists and Drone status update automatically. Folder scans keep cached sizes. Size updated is the last completed size calculation; totals include known sizes only. Deletions are revalidated.",
+  "系統定期更新目錄、Drone 狀態與專案容量；頁面自動同步最新結果。容量更新時間代表專案上次完成計算的時間；總量僅含已知容量。刪除前仍會重新驗證。": "The system periodically updates inventory, Drone status and project sizes; this page syncs automatically. Size updated shows the last completed project calculation. Totals include known sizes only. Deletion is revalidated.",
   "專案 ID、Organization 與 Repository 建立後固定；變更歸屬請新增專案。儲存後系統會自動重新掃描。": "Project ID, organization and repository are fixed after creation. Create a new project to change ownership. The system rescans automatically after saving.",
   "專案設定已儲存並生效，系統將自動重新掃描。": "Project settings saved and applied. An automatic rescan will follow."
 };
 const hindiTranslations = {
+  "已排入 {count} 個專案容量計算": "{count} परियोजनाओं के आकार अपडेट कतार में हैं",
   "更新全部容量": "सभी आकार अपडेट करें",
   "選取項目包含受保護紀錄，無法刪除。": "चयन में सुरक्षित रिकॉर्ड हैं; इन्हें हटाया नहीं जा सकता।",
   "保留最近 30 天的已結束紀錄；待處理工作不會自動清除。": "पूरे हो चुके कार्यों का इतिहास 30 दिनों तक रखा जाता है। अनसुलझे कार्य सुरक्षित रखे जाते हैं।",
@@ -409,7 +411,7 @@ const hindiTranslations = {
   "移除專案 {project}？此操作不會刪除 QC 資料夾。": "प्रोजेक्ट {project} हटाएँ? इससे QC फ़ोल्डर नहीं हटते।",
   "尚未設定專案，請新增專案。": "कोई प्रोजेक्ट सेट नहीं है। शुरू करने के लिए प्रोजेक्ट जोड़ें।",
   "尚無執行紀錄。系統會自動掃描，也可按「重新掃描」立即更新。": "दिखाने के लिए कोई रिकॉर्ड नहीं है। स्कैन अपने आप होते हैं; अभी अपडेट करने के लिए फिर स्कैन करें पर क्लिक करें।",
-  "系統定期更新目錄清單與 Drone 狀態；目錄掃描不會重算已有容量。容量更新時間代表上次完成計算的時間；總量僅含已知容量。刪除前仍會重新驗證。": "फ़ोल्डर सूची और Drone की स्थिति अपने आप अपडेट होती हैं। फ़ोल्डर स्कैन कैश किए गए आकार रखते हैं। आकार अपडेट का समय पिछली पूरी हुई गणना का समय है; कुल में केवल ज्ञात आकार शामिल हैं। हटाने से पहले फिर सत्यापन होता है।",
+  "系統定期更新目錄、Drone 狀態與專案容量；頁面自動同步最新結果。容量更新時間代表專案上次完成計算的時間；總量僅含已知容量。刪除前仍會重新驗證。": "सिस्टम समय-समय पर सूची, Drone स्थिति और परियोजना के आकार अपडेट करता है; पृष्ठ अपने आप सिंक होता है। आकार अपडेट का समय परियोजना की पिछली पूरी गणना दर्शाता है। कुल में केवल ज्ञात आकार शामिल हैं। हटाने से पहले दोबारा जाँच होती है।",
   "專案 ID、Organization 與 Repository 建立後固定；變更歸屬請新增專案。儲存後系統會自動重新掃描。": "बनाने के बाद प्रोजेक्ट ID, संगठन और रिपॉज़िटरी निश्चित रहते हैं। स्वामित्व बदलने के लिए नया प्रोजेक्ट बनाएँ। सहेजने के बाद सिस्टम अपने आप फिर स्कैन करता है।",
   "專案設定已儲存並生效，系統將自動重新掃描。": "प्रोजेक्ट सेटिंग सहेजकर लागू कर दी गई हैं। अब अपने आप फिर स्कैन होगा।"
 };

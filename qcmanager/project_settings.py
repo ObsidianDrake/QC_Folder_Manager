@@ -103,7 +103,7 @@ class ProjectSettings:
             if action == 'create':
                 projects.append(current)
         with manager.guard, manager.disks.lock:
-            sizes_busy = any((manager.db.record(rid) or {}).get('project') == pid for rid in manager.pending_sizes)
+            sizes_busy = pid in manager.pending_size_projects or any((manager.db.record(rid) or {}).get('project') == pid for rid in manager.pending_sizes)
             lock = manager.locks.get(pid)
             if pid in manager.pending_scans or sizes_busy or pid in manager.disks.pending or (lock and lock.locked()):
                 raise RequestError('此專案的背景工作仍在執行，請等待完成後再儲存。',409)
@@ -165,6 +165,8 @@ class ProjectSettings:
             manager.locks.pop(pid,None)
         with manager.guard:
             manager.scan_finished.pop(pid,None)
+        with self.db.connect() as db:
+            db.execute('DELETE FROM size_scans WHERE project=?',(pid,))
         with manager.disks.lock:
             manager.disks.items.pop(pid,None)
             manager.disks.invalidated.pop(pid,None)

@@ -26,7 +26,7 @@ for(const [i,name] of ['folder','disk','clean','shield'].entries()){
 
 const base=document.querySelector('meta[name="app-base"]').content;
 const $=id=>document.getElementById(id);
-let isAdmin=false, adminOpen=false;
+let isAdmin=false, adminOpen=false, sizeSubmitting=false;
 let csrf='', inventory={records:[],projects:[],scans:{}}, selected=new Set(), cursor=null, auditOpen=false, busy=false, loggedIn=false, operationRows=[], auditRows=[];
 const stateNames={success:'成功',failure:'失敗',error:'錯誤',killed:'已終止',skipped:'已跳過',declined:'已拒絕',running:'執行中',pending:'排隊中',blocked:'等待核准',waiting_on_dependencies:'等待相依工作',unknown:'待確認',queued:'清理排隊中',deleted:'已刪除',failed:'清理失敗',partial:'部分刪除',rejected:'已阻擋',requested:'提出刪除'};
 function node(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=t(text);if(cls)n.className=cls;return n;}
@@ -43,38 +43,18 @@ async function api(path,body){const options={credentials:'same-origin',headers:{
 function showLogin(){isAdmin=false;window.dispatchEvent(new CustomEvent('qc-user',{detail:null}));loggedIn=false;$('workspace').hidden=true;$('welcome').hidden=false;$('account').replaceChildren();}
 function projectRecords(){return inventory.records.filter(r=>!$('project').value||r.project===$('project').value);}
 function visible(){return projectRecords().filter(r=>(!$('search').value||`${r.number} ${r.name}`.toLowerCase().includes($('search').value.toLowerCase()))&&(!$('status').value||($('status').value==='ready'?r.deletable:!r.deletable)));}
-function selection(){const eligible=new Set(inventory.records.map(r=>r.id));selected=new Set([...selected].filter(id=>eligible.has(id)));$('selected-count').textContent=t('已選取 {count} 筆',{count:selected.size});$('delete').disabled=!selected.size||inventory.records.some(r=>selected.has(r.id)&&!r.deletable);$('delete').title=$('delete').disabled&&selected.size?t('選取項目包含受保護紀錄，無法刪除。'):'';$('selection-reason').hidden=!selected.size||!$('delete').disabled;$('selection-reason').textContent=$('selection-reason').hidden?'':t('選取項目包含受保護紀錄，無法刪除。');$('update-sizes').disabled=!selected.size;$('update-all-sizes').disabled=!projectRecords().some(r=>!['queued','running'].includes(r.size_state));const list=visible();$('select-all').checked=!!list.length&&list.every(r=>selected.has(r.id));$('select-all').indeterminate=list.some(r=>selected.has(r.id))&&!$('select-all').checked;}
-// Refresh CW icon: Lucide (ISC), see LUCIDE-LICENSE.txt.
-function sizeRefreshButton(record){
-  const running=record.size_state==='running';
-  const queued=record.size_state==='queued';
-  const label=t(running?'容量計算中':queued?'容量排隊中':'更新容量');
-  const button=node('button',undefined,'size-refresh'+(running?' is-running':''));
-  button.type='button';
-  button.title=label;
-  button.setAttribute('aria-label',label+' · '+record.name);
-  button.setAttribute('aria-busy',String(running||queued));
-  button.disabled=running||queued;
-  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
-  svg.setAttribute('viewBox','0 0 24 24');
-  svg.setAttribute('aria-hidden','true');
-  svg.setAttribute('focusable','false');
-  for(const d of [
-    'M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8',
-    'M21 3v5h-5',
-    'M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16',
-    'M8 16H3v5'
-  ]){
-    const path=document.createElementNS(svg.namespaceURI,'path');
-    path.setAttribute('d',d);svg.append(path);
-  }
-  button.append(svg);
-  button.addEventListener('click',safe(async()=>{
-    button.disabled=true;
-    try{await updateSizes([record.id]);}
-    finally{button.disabled=['queued','running'].includes(inventory.records.find(r=>r.id===record.id)?.size_state);}
-  }));
-  return button;
+function selection(){const eligible=new Set(inventory.records.filter(r=>r.deletable).map(r=>r.id));selected=new Set([...selected].filter(id=>eligible.has(id)));$('selected-count').textContent=t('已選取 {count} 筆',{count:selected.size});$('delete').disabled=!selected.size||inventory.records.some(r=>selected.has(r.id)&&!r.deletable);$('delete').title=$('delete').disabled&&selected.size?t('選取項目包含受保護紀錄，無法刪除。'):'';$('selection-reason').hidden=!selected.size||!$('delete').disabled;$('selection-reason').textContent=$('selection-reason').hidden?'':t('選取項目包含受保護紀錄，無法刪除。');$('update-all-sizes').disabled=sizeSubmitting||!inventory.projects.some(p=>(!$('project').value||p.id===$('project').value)&&!['queued','running'].includes(inventory.size_scans?.[p.id]?.state));const list=visible().filter(r=>r.deletable);$('select-all').checked=!!list.length&&list.every(r=>selected.has(r.id));$('select-all').indeterminate=list.some(r=>selected.has(r.id))&&!$('select-all').checked;}
+function renderSizeStatus(){
+ const container=$('size-status');container.replaceChildren();
+ for(const project of inventory.projects){
+  if($('project').value&&$('project').value!==project.id)continue;
+  const state=inventory.size_scans?.[project.id]||{};
+  const labels={queued:'容量排隊中',running:'容量計算中',failed:'容量計算失敗',interrupted:'容量計算中斷'};
+  const stamp=state.updated?date(state.updated):t('尚未掃描');
+  const text=`${project.organization}/${project.repository} · ${t('容量更新時間')}: ${stamp}`+(labels[state.state]?` · ${t(labels[state.state])}`:'');
+  container.append(node('div',text));
+ }
+ container.hidden=!inventory.projects.length;
 }
 function renderScanStatus(){
   const container=$('scan-status');
@@ -90,7 +70,7 @@ function renderScanStatus(){
   }
   container.hidden=!container.childElementCount;
 }
-function render(){const list=visible();$('records').replaceChildren();for(const r of list){const tr=node('tr'),check=node('input');check.type='checkbox';check.checked=selected.has(r.id);check.setAttribute('aria-label',t('選取 {name}',{name:r.name}));check.title=t(r.delete_reason);check.addEventListener('change',()=>{check.checked?selected.add(r.id):selected.delete(r.id);selection();});const c=node('td');c.append(check);tr.append(c);const detail=node('td'),link=node('a',r.name);link.prepend(icon('folder'));link.href=r.drone_url;link.target='_blank';link.rel='noopener noreferrer';detail.append(link,node('small',`${r.organization} / ${r.repository} · #${r.number}`));tr.append(detail);const status=node('td');status.append(badge(r.operation_state||r.drone_status));if(r.delete_reason)status.append(node('small',r.delete_reason));tr.append(status);const capacity=node('td',undefined,'capacity-cell'),sizeLine=node('div',undefined,'capacity-value');sizeLine.append(node('strong',bytes(r.bytes)));const sizeLabels={pending:'等待計算',queued:'容量排隊中',running:'容量計算中',cached:'快取容量',failed:'容量計算失敗',interrupted:'容量計算中斷'};const update=sizeRefreshButton(r);sizeLine.append(update);capacity.append(sizeLine);if(r.size_state&&r.size_state!=='cached')capacity.append(node('small',sizeLabels[r.size_state],'size-state'));if(r.size_at){const stamp=node('small',t('容量更新時間')+': '+date(r.size_at),'size-time');stamp.title=t('容量更新時間');capacity.append(stamp);}tr.append(capacity);$('records').append(tr);}$('empty').hidden=!!list.length;selection();const summary=projectRecords();$('total').textContent=summary.length;$('size').textContent=bytes(summary.reduce((s,r)=>s+(r.bytes||0),0));$('eligible').textContent=summary.filter(r=>r.deletable).length;$('protected').textContent=summary.filter(r=>!r.deletable).length;renderScanStatus();}
+function render(){const list=visible();$('records').replaceChildren();for(const r of list){const tr=node('tr'),check=node('input');check.type='checkbox';check.disabled=!r.deletable;check.checked=selected.has(r.id);check.setAttribute('aria-label',t('選取 {name}',{name:r.name}));check.title=t(r.delete_reason);check.addEventListener('change',()=>{check.checked?selected.add(r.id):selected.delete(r.id);selection();});const c=node('td');c.append(check);tr.append(c);const detail=node('td'),link=node('a',r.name);link.prepend(icon('folder'));link.href=r.drone_url;link.target='_blank';link.rel='noopener noreferrer';detail.append(link,node('small',`${r.organization} / ${r.repository} · #${r.number}`));tr.append(detail);const status=node('td');status.append(badge(r.operation_state||r.drone_status));if(r.delete_reason)status.append(node('small',r.delete_reason));tr.append(status);const capacity=node('td',undefined,'capacity-cell'),sizeLine=node('div',undefined,'capacity-value');sizeLine.append(node('strong',bytes(r.bytes)));const sizeLabels={pending:'等待計算',queued:'容量排隊中',running:'容量計算中',cached:'快取容量',failed:'容量計算失敗',interrupted:'容量計算中斷'};capacity.append(sizeLine);if(r.size_state&&r.size_state!=='cached')capacity.append(node('small',sizeLabels[r.size_state],'size-state'));tr.append(capacity);$('records').append(tr);}$('empty').hidden=!!list.length;selection();const summary=projectRecords();$('total').textContent=summary.length;$('size').textContent=bytes(summary.reduce((s,r)=>s+(r.bytes||0),0));$('eligible').textContent=summary.filter(r=>r.deletable).length;$('protected').textContent=summary.filter(r=>!r.deletable).length;renderScanStatus();renderSizeStatus();}
 
 async function refresh(){if(busy||!loggedIn||adminOpen)return;busy=true;try{inventory=await api('/api/records');const old=$('project').value;$('project').replaceChildren(new Option(t('全部可存取專案'),''));for(const p of inventory.projects)$('project').add(new Option(`${p.organization}/${p.repository}`,p.id));if(inventory.projects.some(p=>p.id===old))$('project').value=old;render();await refreshDisks();if(auditOpen&&operationPage===1)await operations();}catch(e){notice(e.message);}finally{busy=false;}}
 let operationPage=1, operationMore=false;
@@ -114,10 +94,16 @@ function projectName(id){const p=inventory.projects.find(p=>p.id===id);return p?
 function renderAudit(){const data={events:auditRows,next_before:cursor};$('audit').replaceChildren();for(const e of data.events){const tr=node('tr');tr.append(node('td',date(e.at)),node('td',`${e.actor.login}${e.actor.is_admin?' · Admin':''}`),node('td',stateNames[e.event]||e.event),node('td',`${e.organization&&e.repository?e.organization+'/'+e.repository:projectName(e.project)} / ${e.operation||'—'}`),node('td',e.detail.message||e.detail.reason||e.detail.target?.name||''));$('audit').append(tr);}cursor=data.next_before;$('more-audit').hidden=!cursor;}
 function safe(fn){return async()=>{try{await fn();}catch(e){notice(e.message);}};}
 $('project').addEventListener('change',()=>{render();renderDisks();});$('search').addEventListener('input',render);$('status').addEventListener('change',render);
-$('select-all').addEventListener('change',()=>{for(const r of visible())$('select-all').checked?selected.add(r.id):selected.delete(r.id);render();});
-async function updateSizes(ids){let accepted=0;for(let offset=0;offset<ids.length;offset+=100){const result=await api('/api/sizes',{records:ids.slice(offset,offset+100)});accepted+=result.accepted;}notice(t('已排入 {count} 筆容量計算',{count:accepted}));await refresh();}
-$('update-all-sizes').addEventListener('click',safe(async()=>{$('update-all-sizes').disabled=true;try{await updateSizes(projectRecords().map(r=>r.id));}finally{selection();}}));
-$('update-sizes').addEventListener('click',safe(()=>updateSizes([...selected])));
+$('select-all').addEventListener('change',()=>{for(const r of visible().filter(r=>r.deletable))$('select-all').checked?selected.add(r.id):selected.delete(r.id);render();});
+async function updateProjectSizes(){
+ const ids=$('project').value?[$('project').value]:inventory.projects.map(p=>p.id);
+ if(!ids.length||sizeSubmitting)return;
+ sizeSubmitting=true;selection();
+ try{let accepted=0;for(let offset=0;offset<ids.length;offset+=100){const result=await api('/api/sizes',{projects:ids.slice(offset,offset+100)});accepted+=result.accepted;}
+ notice(t('已排入 {count} 個專案容量計算',{count:accepted}));await refresh();}
+ finally{sizeSubmitting=false;selection();}
+}
+$('update-all-sizes').addEventListener('click',safe(updateProjectSizes));
 $('scan').addEventListener('click',safe(async()=>{const ids=$('project').value?[$('project').value]:inventory.projects.map(p=>p.id);if(!ids.length)return notice('目前沒有可存取的專案。');await api('/api/scan',{projects:ids});notice('掃描已排入背景工作。');await refresh();}));
 $('delete').addEventListener('click',()=>{selection();if($('delete').disabled)return;$('confirm-list').replaceChildren();for(const r of inventory.records.filter(r=>selected.has(r.id)))$('confirm-list').append(node('div',`${r.organization}/${r.repository} · ${r.name} · #${r.number}`));$('confirm').showModal();});
 $('cancel-delete').addEventListener('click',()=>$('confirm').close());
@@ -151,3 +137,6 @@ async function refreshDisks(){try{diskRows=(await api('/api/disks')).disks;rende
 $('refresh-disks').addEventListener('click',safe(async()=>{const projects=$('project').value?[$('project').value]:inventory.projects.map(p=>p.id);await api('/api/disks/refresh',{projects});await refreshDisks();}));
 boot();setInterval(()=>{if(!document.hidden)refresh();},8000);
 
+
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
+window.addEventListener('focus',()=>refresh());

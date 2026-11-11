@@ -233,7 +233,7 @@ def create_app(config, db=None, gitea=None, drone=None, storage=None):
     @require_login
     def sizes():
         body = request.get_json(silent=True) or {}
-        return jsonify(manager.sizes(body.get('records'),g.actor)),202
+        return jsonify(manager.project_sizes(body.get('projects'),g.actor)),202
 
     @app.post('/api/delete')
     @require_login

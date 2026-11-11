@@ -25,7 +25,8 @@ def inventory(value):
         scans[pid] = dict(select(scan, ('state', 'updated')),
             error='掃描失敗，請聯絡管理員並提供專案名稱。' if scan.get('error') else None,
             quarantine_count=len(scan.get('quarantines', [])))
-    return dict(records=records, projects=[project(p) for p in value['projects']], scans=scans)
+    return dict(records=records, projects=[project(p) for p in value['projects']], scans=scans,
+                size_scans={pid:select(status, ('state','updated')) for pid,status in value.get('size_scans',{}).items()})
 
 
 def disks(rows):

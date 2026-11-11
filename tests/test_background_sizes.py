@@ -21,7 +21,7 @@ def test_slow_size_does_not_block_inventory_and_rescan_refreshes_size(web, confi
     original=m.storage.request; calls=[]
     def request(project,action,**fields):
         calls.append(action)
-        if action=='size':
+        if action=='project_sizes':
             entered.set()
             assert release.wait(5)
         return original(project,action,**fields)
@@ -35,19 +35,19 @@ def test_slow_size_does_not_block_inventory_and_rescan_refreshes_size(web, confi
         assert row['bytes'] is None and row['size_state']=='running'
         assert row['drone_status']=='success'
         for _ in range(3):assert client.get('/api/records').status_code==200
-        assert calls.count('scan')==1 and calls.count('size')==1
-        assert client.post('/api/sizes',json={'records':[row['id']]},headers=headers).json['accepted']==0
+        assert calls.count('scan')==1 and calls.count('project_sizes')==1
+        assert client.post('/api/sizes',json={'projects':['example-project']},headers=headers).json['accepted']==0
         release.set()
         wait_for(lambda: m.db.record(row['id']).get('size_at'))
         wait_for(lambda: not m.pending_scans)
         m.scan('example-project',gitea.actor)
         wait_for(lambda: not m.pending_scans)
         wait_for(lambda: not m.pending_sizes)
-        assert calls.count('size')==2
+        assert calls.count('project_sizes')==2
         assert m.db.record(row['id'])['bytes'] is not None
-        assert client.post('/api/sizes',json={'records':[row['id']]}).status_code==403
+        assert client.post('/api/sizes',json={'projects':['example-project']}).status_code==403
         gitea.actor['orgs']=[]
-        assert client.post('/api/sizes',json={'records':[row['id']]},headers=headers).status_code==404
+        assert client.post('/api/sizes',json={'projects':['example-project']},headers=headers).status_code==404
     finally:
         release.set()
 
@@ -121,7 +121,7 @@ def test_size_timeout_logs_context_and_seconds(web, configuration, monkeypatch, 
         wait_for(lambda: m.db.record(row['id']).get('size_state') == 'failed')
     assert 'size calculation failed' in caplog.text
     assert 'timeout_seconds' in caplog.text and '1800' in caplog.text
-    assert p['id'] in caplog.text and 'qc_1' in caplog.text
+    assert p['id'] in caplog.text and p['run_folder'] in caplog.text
 
 
 def test_size_missing_subdirectory_is_skipped_but_permission_errors_fail(tmp_path, monkeypatch):

@@ -185,9 +185,9 @@ Gitea admin 可使用「專案管理」新增、編輯與移除專案；儲存�
 - 排程由服務主程序啟動，不依賴登入或前端輪詢；`--check-config`／`--preflight` 不啟動排程。關閉服務時先停止排程，再等待已排入的工作完成。
 - 管理頁新增／修改專案後，下次排程檢查自動掃描；移除的專案不再排程。排程與管理 API 共用設定鎖，掃描中不能修改該專案；設定需復原時暫停排程。
 - 列表不再顯示 Last scanned 欄位及專案掃描完成時間；後端仍保留 `scanned_at` 供診斷，頁面保留尚未掃描、掃描中／失敗與待處理事項。每輪掃描會更新目錄清單及 Drone 狀態。
-- **容量更新時間 / Size updated**：最近一次成功完成該資料夾遞迴容量計算的時間。不是目錄掃描時間。
-- 自動與手動 Rescan 都會替全部有效 run folder 排入 dust 容量計算，包括執行中的 build。計算期間保留舊值；已排隊或計算中的紀錄不重複排入。預設每輪掃描間隔 300 秒，容量實際完成時間取決於佇列與資料量，並非保證每 5 分鐘完成。
-- 「更新全部容量」更新目前所選專案的所有紀錄；選擇「全部可存取專案」時涵蓋所有有權限的專案，不受搜尋／狀態篩選限制。不需勾選，另保留選取更新與逐列更新；容量計算失敗保留舊值與舊時間。
+- **容量更新時間 / Size updated**：最近一次成功完成整個專案容量掃描的時間，列在表格上方；查看多個專案時逐專案顯示，不再逐列重複時間。排隊、計算中、失敗與中斷狀態也在此呈現。容量失敗保留舊值與上次成功時間；服務重啟會將未完成容量工作標示中斷。
+- 自動與手動 Rescan 都會替專案排入一次 dust 容量掃描，一次取得底下所有 run folder（包含執行中的 build）的容量。計算期間保留舊值；已排隊或計算中的專案不重複排入。預設每輪掃描間隔 300 秒，容量實際完成時間取決於佇列與資料量，並非保證每 5 分鐘完成。
+- 「更新容量」立即排入目前所選專案；選擇「全部可存取專案」時涵蓋所有有權限的專案，不受搜尋／狀態篩選限制。移除逐列 refresh 與選取容量更新；勾選框僅用於刪除，受保護紀錄不可勾選。前端每 8 秒同步後端，切回分頁或視窗取得焦點時立即同步；不會因前端輪詢啟動 dust。
 - 自動掃描沿用原本的刪除保護、資料隔離及服務憑證；不新增使用者權限，也不自動刪除任何資料。
 
 ## 刪除紀錄與保留期限
@@ -210,7 +210,7 @@ Gitea admin 可使用「專案管理」新增、編輯與移除專案；儲存�
 
 容量估算由資料所在主機的 **dust** 執行（相容 dust 1.1.1 與 1.2.7），遠端主機仍需要 Python >= 3.9 啟動 helper。每個 local/SSH host 可設定 `dust.executable`（預設 `dust`，建議絕對路徑）、`dust.threads`（預設 4）、`dust.timeout_seconds`（預設 1800）。服務不會自動下載 dust，也不會找不到 dust 時靜默改用 Python。請先以服務帳號確認 `dust --version`；指令須支援 `-j`、`-o b`、`-T`。
 
-helper 在已驗證並開啟的 run folder 內執行 `dust -j -o b -d 0 -n 1 -P -c -x -T 4 -- .`，解析 JSON 的 byte 數；僅在 dust 子程序中將 HOME／XDG_CONFIG_HOME 指向暫存空目錄，避免帳號的 dust 設定改變計算方式（1.1.1 不支援 --config）。只取得總量但仍遞迴計算內容，包含隱藏檔案、不跟隨 symlink、限制同一 filesystem。每個 run folder 獨立計算 hard link，跨 run folder 的加總可能重複計入共用檔案。 dust 1.1.1 不計入 symlink 本身占用的 blocks，1.2.7 則會計入；兩者均不走訪連結目標，因此與舊 Python helper 的容量可能有少量差異。
+helper 在已驗證並開啟的專案根目錄內執行一次 `dust -j -o b -d 1 -D -n <根目錄項目數+1> -P -c -x -T 4 -- .`，解析 JSON 直接子目錄的 byte 數，只套用符合 prefix/build number 且掃描前後身分一致的 run folder；僅在 dust 子程序中將 HOME／XDG_CONFIG_HOME 指向暫存空目錄，避免帳號的 dust 設定改變計算方式（1.1.1 不支援 --config）。只顯示第一層但仍遞迴計算所有內容，包含隱藏檔案、不跟隨 symlink、限制同一 filesystem。同一專案內 hard link 由 dust 跨資料夾去重，因此共用檔案的 blocks 可能只歸入其中一個 run folder，個別資料夾容量不保證等於獨立掃描的結果。 dust 1.1.1 不計入 symlink 本身占用的 blocks，1.2.7 則會計入；兩者均不走訪連結目標，因此與舊 Python helper 的容量可能有少量差異。
 
 掃描途中消失的檔案／子目錄由 dust 略過；其他 stderr 錯誤、非零 exit、無效輸出及逾時視為失敗，保留舊容量。後端 `size calculation failed diagnostic=` log 會記錄專案、紀錄、主機，以及 `dust_not_found`、`dust_permission_denied`、`dust_scan_error`、`dust_exit_failed`、`dust_invalid_output`、`dust_timeout` 等原因與 exit code／timeout。UI 失敗提示不變。SSH host 的 dust timeout 上限為 `ssh.timeout_seconds - 5`，讓 helper 先終止 dust 並回報錯誤；大型資料夾可同時調高兩個 timeout，修改後重啟。
 

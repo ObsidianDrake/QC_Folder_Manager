@@ -23,6 +23,8 @@ class Database:
                 CREATE TABLE IF NOT EXISTS records (
                     id TEXT PRIMARY KEY, project TEXT NOT NULL, name TEXT NOT NULL,
                     payload TEXT NOT NULL, UNIQUE(project,name));
+                CREATE TABLE IF NOT EXISTS size_scans (
+                    project TEXT PRIMARY KEY, updated REAL, state TEXT, error TEXT);
                 CREATE TABLE IF NOT EXISTS scans (
                     project TEXT PRIMARY KEY, updated REAL, state TEXT, error TEXT,
                     quarantines TEXT NOT NULL DEFAULT '[]');
@@ -54,6 +56,7 @@ class Database:
 
     def recover(self):
         with self.connect() as db:
+            db.execute("UPDATE size_scans SET state='interrupted' WHERE state IN ('queued','running')")
             for item in db.execute('SELECT id,payload FROM records').fetchall():
                 row = json.loads(item['payload'])
                 if row.get('size_state') in ('queued','running'):
@@ -119,6 +122,18 @@ class Database:
             row.update(fields)
             db.execute('UPDATE records SET payload=? WHERE id=?', (json.dumps(row), row['id']))
             return True
+
+    def size_status(self, projects):
+        with self.connect() as db:
+            return {r['project']: dict(r) for r in db.execute('SELECT * FROM size_scans')
+                    if r['project'] in projects}
+
+    def set_size_status(self, project, state, updated=None, error=None):
+        with self.connect() as db:
+            db.execute("INSERT INTO size_scans(project,state,updated,error) VALUES(?,?,?,?) "
+                       "ON CONFLICT(project) DO UPDATE SET state=excluded.state, "
+                       "updated=COALESCE(excluded.updated,size_scans.updated),error=excluded.error",
+                       (project,state,updated,error))
 
     def record(self, rid):
         with self.connect() as db:

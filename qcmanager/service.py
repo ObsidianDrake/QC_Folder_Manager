@@ -30,6 +30,7 @@ class Manager:
         self.size_pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix='qc-size')
         self.size_capacity = threading.BoundedSemaphore(200)
         self.pending_sizes = set()
+        self.pending_size_projects = set()
         self.pending_scans = set()
         self.scan_finished = {}
         self.scan_scheduler = None
@@ -101,7 +102,7 @@ class Manager:
                 # Publish directory names first. Recursive size I/O uses a separate worker.
                 self.db.finish_scan(pid,result=result,state="checking")
                 snapshots, _ = self.db.inventory({pid})
-                self.queue_sizes([row for row in snapshots if not row.get('error')])
+                self.queue_project_size(pid)
                 stage = 'drone'
                 for row in snapshots:
                     fields = {'drone_checked_at': time.time()}
@@ -129,69 +130,85 @@ class Manager:
                 self.scan_finished[pid] = time.monotonic()
                 self.pending_scans.discard(pid)
 
-    def sizes(self, ids, actor):
-        if not isinstance(ids, list) or not 1 <= len(ids) <= 100 or any(not isinstance(x,str) for x in ids) or len(set(ids)) != len(ids):
-            raise RequestError('請選擇 1–100 筆不重複的紀錄。')
-        allowed = self.allowed(actor)
-        rows = [self.db.record(rid) for rid in ids]
-        if any(not row or row['project'] not in allowed for row in rows):
-            raise RequestError('包含無權限或不存在的紀錄。',404)
-        return {'accepted': self.queue_sizes(rows)}
+    def project_sizes(self, ids, actor):
+        if (not isinstance(ids, list) or not 1 <= len(ids) <= 100 or
+                any(not isinstance(pid, str) for pid in ids) or len(set(ids)) != len(ids)):
+            raise RequestError('請選擇要掃描的專案。')
+        if any(pid not in self.allowed(actor) for pid in ids):
+            raise RequestError('包含無權限的專案。',404)
+        return {'accepted': sum(self.queue_project_size(pid) for pid in ids)}
 
     def queue_sizes(self, rows):
-        if not rows:
-            return 0
+        # Compatibility for internal callers: always expand to whole projects.
+        return sum(self.queue_project_size(pid) for pid in dict.fromkeys(row['project'] for row in rows))
+
+    def queue_project_size(self, pid):
         if not self.size_capacity.acquire(blocking=False):
-            return 0
+            raise RequestError('工作佇列已滿，請稍後重試。',429)
         jobs = []
+        with self.guard:
+            if pid in self.pending_size_projects:
+                self.size_capacity.release()
+                return 0
+            self.pending_size_projects.add(pid)
         try:
+            rows, _ = self.db.inventory({pid})
             with self.guard:
                 for row in rows:
-                    if row['id'] in self.pending_sizes:
-                        continue
                     ticket = uuid.uuid4().hex
                     if self.db.patch_record(row, {'size_state':'queued','size_error':None,'size_ticket':ticket}):
                         self.pending_sizes.add(row['id'])
                         jobs.append((row,ticket))
-            if not jobs:
-                self.size_capacity.release()
-                return 0
-            self.size_pool.submit(self._sizes, jobs)
-            return len(jobs)
+            self.db.set_size_status(pid, 'queued')
+            self.size_pool.submit(self._sizes, pid, jobs)
+            return 1
         except Exception:
             for row,ticket in jobs:
                 self.db.patch_record(row, {'size_state':'interrupted'},ticket)
-                with self.guard:
-                    self.pending_sizes.discard(row['id'])
+            with self.guard:
+                self.pending_size_projects.discard(pid)
+                self.pending_sizes.difference_update(row['id'] for row,ticket in jobs)
+            self.db.set_size_status(pid, 'interrupted')
             self.size_capacity.release()
             raise
 
-    def _sizes(self, jobs):
+    def _sizes(self, pid, jobs):
         try:
+            with self.locks[pid]:
+                self.db.set_size_status(pid, 'running')
+                for row,ticket in jobs:
+                    self.db.patch_record(row, {'size_state':'running'},ticket)
+                result = self.storage.request(self.projects[pid], 'project_sizes')
+                completed = time.time()
+                for row,ticket in jobs:
+                    found = result['records'].get(row['name'])
+                    if (found and found['identity'] == row['identity'] and
+                            result['root_identity'] == row['root_identity']):
+                        self.db.patch_record(row, {'bytes':found['bytes'],'size_at':completed,
+                                                  'size_state':'cached','size_error':None},ticket)
+                    else:
+                        # Do not attach a replaced/disappeared folder's measurement
+                        # to an old inventory record. Discovery will reconcile it.
+                        self.db.patch_record(row, {'size_state':'interrupted'},ticket)
+                        self.log.info('size result skipped changed folder project=%s folder=%s',pid,row['name'])
+                self.db.set_size_status(pid, 'cached', updated=completed)
+        except Exception as error:
+            project = self.projects.get(pid, {})
+            host = self.config['hosts'].get(project.get('host'), {})
+            details = dict(project=pid, host=host.get('hostname', project.get('host')),
+                           transport=host.get('transport'), root=project.get('run_folder'),
+                           exception=exception_details(error))
+            if isinstance(error, StorageError):
+                details['reason'] = error.ui_message
+                details['storage'] = error.details
+            self.log.warning('size calculation failed diagnostic=%s', json.dumps(details, ensure_ascii=True))
             for row,ticket in jobs:
-                try:
-                    if not self.db.patch_record(row, {'size_state':'running'},ticket):
-                        continue
-                    result = self.storage.request(self.projects[row['project']], 'size',
-                        name=row['name'], identity=row['identity'], root_identity=row['root_identity'])
-                    self.db.patch_record(row, {'bytes':result['bytes'],'size_at':time.time(),
-                                              'size_state':'cached','size_error':None},ticket)
-                except Exception as error:
-                    project = self.projects.get(row['project'], {})
-                    host = self.config['hosts'].get(project.get('host'), {})
-                    details = dict(project=row['project'], record=row['id'], folder=row['name'],
-                                   host=host.get('hostname', project.get('host')),
-                                   transport=host.get('transport'), root=project.get('run_folder'),
-                                   exception=exception_details(error))
-                    if isinstance(error, StorageError):
-                        details['reason'] = error.ui_message
-                        details['storage'] = error.details
-                    self.log.warning('size calculation failed diagnostic=%s', json.dumps(details, ensure_ascii=True))
-                    self.db.patch_record(row, {'size_state':'failed','size_error':'Capacity calculation failed'},ticket)
-                finally:
-                    with self.guard:
-                        self.pending_sizes.discard(row['id'])
+                self.db.patch_record(row, {'size_state':'failed','size_error':'Capacity calculation failed'},ticket)
+            self.db.set_size_status(pid, 'failed', error='Capacity calculation failed')
         finally:
+            with self.guard:
+                self.pending_size_projects.discard(pid)
+                self.pending_sizes.difference_update(row['id'] for row,ticket in jobs)
             self.size_capacity.release()
 
     def inventory(self, actor):
@@ -219,6 +236,7 @@ class Manager:
             row.pop('identity',None)
             row.pop('root_identity',None)
         return {'records':sorted(rows,key=lambda x:x['number'],reverse=True), 'scans':scans,
+                'size_scans':self.db.size_status(allowed),
                 'projects':[dict(p, environment=self.config['hosts'][p['host']]['environment']) for p in allowed.values()]}
 
     def delete(self, ids, actor, token):
