@@ -110,16 +110,25 @@ def test_real_dust_counts_hidden_sparse_hardlinks_without_following_symlinks(tmp
     os.link(folder/'.hidden', folder/'hardlink')
     with (folder/'sparse').open('wb') as f:
         f.truncate(1024*1024*1024)
-    outside = tmp_path/'outside'; outside.mkdir()
-    (outside/'large').write_bytes(b'x'*1048576)
-    (folder/'link').symlink_to(outside, target_is_directory=True)
     (folder/'nested').mkdir()
     fd = os.open(str(folder), fs_helper.FLAGS)
     try:
+        # Exact comparison without symlinks still checks hidden files, sparse
+        # allocation, hard-link deduplication and isolation from user config.
+        assert fs_helper.execute(body)['bytes'] == fs_helper.disk_size(fd)
+        # A long link target allocates a block on ext4, unlike an inline link.
+        # Some filesystems report zero blocks even for this long symlink.
+        outside = tmp_path/('outside-' + 'x'*100); outside.mkdir()
+        (outside/'large').write_bytes(b'x'*1048576)
+        link = folder/'link'
+        link.symlink_to(outside, target_is_directory=True)
         expected = fs_helper.disk_size(fd)
+        link_bytes = link.lstat().st_blocks * 512
+        # Dust 1.1.1 excludes the link inode; 1.2.7 includes its allocated
+        # blocks. Neither may traverse/count the external 1 MiB file.
+        assert fs_helper.execute(body)['bytes'] in {expected - link_bytes, expected}
     finally:
         os.close(fd)
-    assert fs_helper.execute(body)['bytes'] == expected
 
 
 def test_replaced_folder_rejected_before_dust(tmp_path, monkeypatch):

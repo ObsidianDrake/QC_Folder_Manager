@@ -210,7 +210,7 @@ Gitea admin 可使用「專案管理」新增、編輯與移除專案；儲存�
 
 容量估算由資料所在主機的 **dust** 執行（相容 dust 1.1.1 與 1.2.7），遠端主機仍需要 Python >= 3.9 啟動 helper。每個 local/SSH host 可設定 `dust.executable`（預設 `dust`，建議絕對路徑）、`dust.threads`（預設 4）、`dust.timeout_seconds`（預設 1800）。服務不會自動下載 dust，也不會找不到 dust 時靜默改用 Python。請先以服務帳號確認 `dust --version`；指令須支援 `-j`、`-o b`、`-T`。
 
-helper 在已驗證並開啟的 run folder 內執行 `dust -j -o b -d 0 -n 1 -P -c -x -T 4 -- .`，解析 JSON 的 byte 數；僅在 dust 子程序中將 HOME／XDG_CONFIG_HOME 指向暫存空目錄，避免帳號的 dust 設定改變計算方式（1.1.1 不支援 --config）。只取得總量但仍遞迴計算內容，包含隱藏檔案、不跟隨 symlink、限制同一 filesystem。每個 run folder 獨立計算 hard link，跨 run folder 的加總可能重複計入共用檔案。
+helper 在已驗證並開啟的 run folder 內執行 `dust -j -o b -d 0 -n 1 -P -c -x -T 4 -- .`，解析 JSON 的 byte 數；僅在 dust 子程序中將 HOME／XDG_CONFIG_HOME 指向暫存空目錄，避免帳號的 dust 設定改變計算方式（1.1.1 不支援 --config）。只取得總量但仍遞迴計算內容，包含隱藏檔案、不跟隨 symlink、限制同一 filesystem。每個 run folder 獨立計算 hard link，跨 run folder 的加總可能重複計入共用檔案。 dust 1.1.1 不計入 symlink 本身占用的 blocks，1.2.7 則會計入；兩者均不走訪連結目標，因此與舊 Python helper 的容量可能有少量差異。
 
 掃描途中消失的檔案／子目錄由 dust 略過；其他 stderr 錯誤、非零 exit、無效輸出及逾時視為失敗，保留舊容量。後端 `size calculation failed diagnostic=` log 會記錄專案、紀錄、主機，以及 `dust_not_found`、`dust_permission_denied`、`dust_scan_error`、`dust_exit_failed`、`dust_invalid_output`、`dust_timeout` 等原因與 exit code／timeout。UI 失敗提示不變。SSH host 的 dust timeout 上限為 `ssh.timeout_seconds - 5`，讓 helper 先終止 dust 並回報錯誤；大型資料夾可同時調高兩個 timeout，修改後重啟。
 
