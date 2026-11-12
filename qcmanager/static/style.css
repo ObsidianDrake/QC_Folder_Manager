@@ -53,3 +53,5 @@ header{height:82px}main{padding-top:24px}.logo{padding:10px;border-radius:12px;b
 .project-delete-policy{padding:16px;background:#edf4f0;border-radius:8px}.project-fields .project-delete-policy label{flex-direction:row;align-items:center;font-weight:600}.project-fields .project-delete-policy input{width:18px;height:18px;accent-color:#126950}.project-delete-policy small{display:block;margin-top:8px;color:#426454;line-height:1.6}
 
 a.drone-status-link:hover{text-decoration:underline;filter:brightness(.96)}a.drone-status-link>.ui-icon{color:inherit}
+
+.disk-card-head strong{min-width:0;overflow-wrap:anywhere;line-height:1.5}.disk-card-head>.ui-icon{flex-shrink:0}

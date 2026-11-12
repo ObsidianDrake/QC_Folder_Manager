@@ -119,14 +119,13 @@ function renderDisks(){
   const rows=diskRows.filter(d=>!$('project').value||d.projects.some(p=>p.id===$('project').value));
   for(const d of rows){
     const card=node('article',undefined,'disk-card'),head=node('div',undefined,'disk-card-head');
-    head.append(icon('disk'),node('strong','磁碟空間'));card.append(head);
+    head.append(icon('disk'),node('strong',d.projects.map(p=>p.organization+'/'+p.repository).join(' · ')));card.append(head);
     const value=node('div',undefined,'disk-available');value.append(node('strong',d.available===null||d.available===undefined?'—':bytes(d.available)),node('span','可用空間'));card.append(value);
     if(typeof d.total==='number'&&d.total>0){
       const percent=Math.max(0,Math.min(100,d.used/d.total*100));
       const meter=node('progress');meter.max=100;meter.value=percent;meter.className=percent>=95?'critical':percent>=85?'warning':'';meter.setAttribute('aria-label',t('磁碟使用率'));card.append(meter);
       card.append(node('small',t('已使用 {percent} · 總容量 {total}',{percent:percent.toFixed(1)+'%',total:bytes(d.total)})));
     }
-    card.append(node('p',d.projects.map(p=>p.organization+'/'+p.repository).join(' · '),'disk-projects'));
     const state=d.error?'查詢失敗，保留上次資料':d.refreshing?'更新中':d.stale?'資料已過期':'已更新';
     card.append(node('small',state,d.error||d.stale?'disk-stale':''));if(d.updated)card.append(node('small',date(d.updated)));
     $('disks').append(card);
